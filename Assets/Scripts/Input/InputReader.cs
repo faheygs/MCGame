@@ -7,6 +7,7 @@ public class InputReader : ScriptableObject, PlayerInputActions.IPlayerActions
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
     public bool SprintInput { get; private set; }
+    public bool InteractInput { get; private set; }
 
     private PlayerInputActions _inputActions;
 
@@ -38,5 +39,10 @@ public class InputReader : ScriptableObject, PlayerInputActions.IPlayerActions
     public void OnSprint(InputAction.CallbackContext context)
     {
         SprintInput = context.ReadValueAsButton();
+    }
+
+    public void OnInteract(InputAction.CallbackContext context)
+    {
+        InteractInput = context.ReadValueAsButton();
     }
 }
