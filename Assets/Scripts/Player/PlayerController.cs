@@ -11,17 +11,26 @@ public class PlayerController : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private InputReader inputReader;
-    [SerializeField] private ThirdPersonCamera thirdPersonCamera;
 
     private CharacterController _characterController;
+    private ThirdPersonCamera _thirdPersonCamera;
     private Vector3 _verticalVelocity;
 
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
+
+        // Find the camera automatically at runtime
+        // This avoids needing to manually assign it per scene
+        _thirdPersonCamera = Camera.main.GetComponent<ThirdPersonCamera>();
+
+        if (_thirdPersonCamera == null)
+        {
+            Debug.LogError("PlayerController: No ThirdPersonCamera found on Main Camera.");
+        }
     }
 
-    private void LateUpdate()
+    private void Update()
     {
         HandleGravity();
         HandleMovement();
@@ -34,10 +43,9 @@ public class PlayerController : MonoBehaviour
 
         if (moveDirection.magnitude > 0.1f)
         {
-            Quaternion cameraRotation = thirdPersonCamera.GetCameraRotation();
+            Quaternion cameraRotation = _thirdPersonCamera.GetCameraRotation();
             moveDirection = cameraRotation * moveDirection;
 
-            // Use run speed when sprinting, walk speed otherwise
             float speed = inputReader.SprintInput ? runSpeed : walkSpeed;
 
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
