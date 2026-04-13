@@ -1,13 +1,11 @@
 using UnityEngine;
 
-// PlayerController handles character movement using Unity's CharacterController.
-// Movement is camera-relative and the player rotates to face the movement direction.
-
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float walkSpeed = 3f;
+    [SerializeField] private float runSpeed = 6f;
     [SerializeField] private float rotationSpeed = 10f;
     [SerializeField] private float gravity = -20f;
 
@@ -36,11 +34,12 @@ public class PlayerController : MonoBehaviour
 
         if (moveDirection.magnitude > 0.1f)
         {
-            // Rotate movement direction to match camera's horizontal orientation
             Quaternion cameraRotation = thirdPersonCamera.GetCameraRotation();
             moveDirection = cameraRotation * moveDirection;
 
-            // Rotate player to face movement direction smoothly
+            // Use run speed when sprinting, walk speed otherwise
+            float speed = inputReader.SprintInput ? runSpeed : walkSpeed;
+
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
@@ -48,7 +47,7 @@ public class PlayerController : MonoBehaviour
                 rotationSpeed * Time.deltaTime
             );
 
-            _characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
+            _characterController.Move(moveDirection * speed * Time.deltaTime);
         }
     }
 
