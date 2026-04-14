@@ -23,11 +23,6 @@ public class PlayerController : MonoBehaviour
         // Find the camera automatically at runtime
         // This avoids needing to manually assign it per scene
         _thirdPersonCamera = Camera.main.GetComponent<ThirdPersonCamera>();
-
-        if (_thirdPersonCamera == null)
-        {
-            Debug.LogError("PlayerController: No ThirdPersonCamera found on Main Camera.");
-        }
     }
 
     private void Update()

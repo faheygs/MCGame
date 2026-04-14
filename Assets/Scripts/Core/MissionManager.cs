@@ -54,13 +54,11 @@ public class MissionManager : MonoBehaviour
 {
     if (IsMissionActive)
     {
-        Debug.Log("MissionManager: A mission is already active.");
         return;
     }
 
     if (GetMissionState(mission) != MissionState.Available)
     {
-        Debug.Log($"MissionManager: {mission.missionName} is not available.");
         return;
     }
 
@@ -74,16 +72,11 @@ public class MissionManager : MonoBehaviour
         UIManager.Instance.ShowMissionUI(mission.missionName, mission.briefingText);
         UIManager.Instance.OnMissionStateChanged(true);
     }
-
-    Debug.Log($"Mission started: {mission.missionName}");
 }
 
     public void CompleteMission()
 {
     if (!IsMissionActive) return;
-
-    Debug.Log($"Mission complete: {_currentMission.missionName}");
-    Debug.Log($"Reward: ${_currentMission.moneyReward} | Rep: {_currentMission.reputationReward}");
 
     _missionStates[_currentMission.missionName] = MissionState.Completed;
 
@@ -105,8 +98,6 @@ public class MissionManager : MonoBehaviour
    public void FailMission()
 {
     if (!IsMissionActive) return;
-
-    Debug.Log($"Mission failed: {_currentMission.missionName}");
     _missionStates[_currentMission.missionName] = MissionState.Failed;
 
     DespawnObjective();
@@ -127,7 +118,6 @@ public class MissionManager : MonoBehaviour
         if (current == MissionState.Locked)
         {
             _missionStates[mission.missionName] = MissionState.Available;
-            Debug.Log($"Mission unlocked: {mission.missionName}");
         }
     }
 
@@ -156,7 +146,6 @@ public class MissionManager : MonoBehaviour
     {
         if (missionObjectivePrefab == null)
         {
-            Debug.LogError("MissionManager: No objective prefab assigned.");
             return;
         }
 
