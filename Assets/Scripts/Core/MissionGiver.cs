@@ -19,6 +19,24 @@ public class MissionGiver : MonoBehaviour
     private void Start()
     {
         _player = GameObject.FindWithTag("Player").transform;
+        UpdateVisibility();
+    }
+
+    private void UpdateVisibility()
+    {
+        if (MissionManager.Instance == null) return;
+
+        MissionState state = MissionManager.Instance.GetMissionState(missionToGive);
+
+        // Only show when Available — hide when Active, Completed, Locked, Failed
+        bool visible = state == MissionState.Available;
+
+        foreach (Transform child in transform)
+            child.gameObject.SetActive(visible);
+
+        MinimapMarker marker = GetComponent<MinimapMarker>();
+        if (marker != null)
+            marker.SetVisible(visible);
     }
 
     private void Update()
@@ -26,6 +44,8 @@ public class MissionGiver : MonoBehaviour
         if (_player == null) return;
         if (MissionManager.Instance == null) return;
         if (UIManager.Instance == null) return;
+
+        UpdateVisibility();
 
         bool missionAvailable = MissionManager.Instance.GetMissionState(missionToGive)
                                 == MissionState.Available;

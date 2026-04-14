@@ -124,6 +124,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4731227792037908713}
   - component: {fileID: 3235795258014817663}
+  - component: {fileID: 1233839781973431502}
   m_Layer: 0
   m_Name: MissionObjectivePrefab
   m_TagString: Untagged
@@ -159,3 +160,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a6ad4b4e1d450c42a14e19bf1b3e610, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MissionObjective
+--- !u!114 &1233839781973431502
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7591482124594185060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7eacc1ba22aa4c947ad173c7631dc67e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MinimapMarker
+  markerMaterial: {fileID: 2100000, guid: 7656d53005f991d49823d85459f571af, type: 2}
+  markerSize: 2
