@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
 
 // MissionManager is the single source of truth for all mission state.
 // Missions can be started from anywhere by calling StartMission().
@@ -12,10 +11,6 @@ public class MissionManager : MonoBehaviour
 
     [Header("Missions")]
     [SerializeField] private MissionData[] allMissions;
-
-    [Header("UI")]
-    [SerializeField] private TextMeshProUGUI missionNameText;
-    [SerializeField] private TextMeshProUGUI missionStatusText;
 
     [Header("Objective")]
     [SerializeField] private GameObject missionObjectivePrefab;
@@ -51,61 +46,60 @@ public class MissionManager : MonoBehaviour
 
     // Called by anything — MissionGiver, cutscene, story event, trigger volume
     public void StartMission(MissionData mission)
-{
-    if (IsMissionActive)
     {
-        return;
+        if (IsMissionActive)
+        {
+            Debug.Log("MissionManager: A mission is already active.");
+            return;
+        }
+
+        if (GetMissionState(mission) != MissionState.Available)
+        {
+            Debug.Log($"MissionManager: {mission.missionName} is not available.");
+            return;
+        }
+
+        _currentMission = mission;
+        _missionStates[mission.missionName] = MissionState.Active;
+
+        SpawnObjective(mission);
+
+        HUDManager.Instance?.OnMissionStarted(mission);
+
+        Debug.Log($"Mission started: {mission.missionName}");
     }
-
-    if (GetMissionState(mission) != MissionState.Available)
-    {
-        return;
-    }
-
-    _currentMission = mission;
-    _missionStates[mission.missionName] = MissionState.Active;
-
-    SpawnObjective(mission);
-
-    if (UIManager.Instance != null)
-    {
-        UIManager.Instance.ShowMissionUI(mission.missionName, mission.briefingText);
-        UIManager.Instance.OnMissionStateChanged(true);
-    }
-}
 
     public void CompleteMission()
-{
-    if (!IsMissionActive) return;
-
-    _missionStates[_currentMission.missionName] = MissionState.Completed;
-
-    if (_currentMission.missionsToUnlockOnComplete != null)
     {
-        foreach (MissionData mission in _currentMission.missionsToUnlockOnComplete)
+        if (!IsMissionActive) return;
+
+        _missionStates[_currentMission.missionName] = MissionState.Completed;
+
+        if (_currentMission.missionsToUnlockOnComplete != null)
         {
-            UnlockMission(mission);
+            foreach (MissionData mission in _currentMission.missionsToUnlockOnComplete)
+                UnlockMission(mission);
         }
+
+        DespawnObjective();
+
+        HUDManager.Instance?.OnMissionCompleted(_currentMission);
+
+        _currentMission = null;
     }
 
-    DespawnObjective();
-    _currentMission = null;
-
-    if (UIManager.Instance != null)
-        UIManager.Instance.OnMissionStateChanged(false);
-}
-
    public void FailMission()
-{
-    if (!IsMissionActive) return;
-    _missionStates[_currentMission.missionName] = MissionState.Failed;
+    {
+        if (!IsMissionActive) return;
 
-    DespawnObjective();
-    _currentMission = null;
+        _missionStates[_currentMission.missionName] = MissionState.Failed;
 
-    if (UIManager.Instance != null)
-        UIManager.Instance.OnMissionStateChanged(false);
-}
+        DespawnObjective();
+
+        HUDManager.Instance?.OnMissionFailed(_currentMission);
+
+        _currentMission = null;
+    }
 
     // Called by anything to make a mission available
     // This is the hook that cutscenes and story events will call later
@@ -168,9 +162,4 @@ public class MissionManager : MonoBehaviour
             _activeObjective = null;
         }
     }
-
-    private void UpdateUI()
-{
-    // UI is now handled by UIManager
-}
 }
