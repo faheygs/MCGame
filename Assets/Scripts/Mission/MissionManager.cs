@@ -15,6 +15,9 @@ public class MissionManager : MonoBehaviour
     [Header("Objective")]
     [SerializeField] private GameObject missionObjectivePrefab;
 
+    [Header("Data")]
+    [SerializeField] private PlayerStats playerStats;
+
     // Runtime state tracking — keyed by mission name for fast lookup
     private Dictionary<string, MissionState> _missionStates = new();
     private MissionData _currentMission;
@@ -37,14 +40,10 @@ public class MissionManager : MonoBehaviour
 
     private void InitializeMissions()
     {
-        // Set each mission to its initial state defined in the asset
         foreach (MissionData mission in allMissions)
-        {
             _missionStates[mission.missionName] = mission.initialState;
-        }
     }
 
-    // Called by anything — MissionGiver, cutscene, story event, trigger volume
     public void StartMission(MissionData mission)
     {
         if (IsMissionActive)
@@ -63,7 +62,6 @@ public class MissionManager : MonoBehaviour
         _missionStates[mission.missionName] = MissionState.Active;
 
         SpawnObjective(mission);
-
         HUDManager.Instance?.OnMissionStarted(mission);
 
         Debug.Log($"Mission started: {mission.missionName}");
@@ -81,38 +79,44 @@ public class MissionManager : MonoBehaviour
                 UnlockMission(mission);
         }
 
-        DespawnObjective();
+        // Apply rewards
+        if (playerStats != null)
+        {
+            if (_currentMission.moneyReward > 0)
+                playerStats.AddMoney(_currentMission.moneyReward);
 
+            if (_currentMission.reputationReward > 0)
+                playerStats.AddReputation(_currentMission.reputationReward);
+        }
+        else
+        {
+            Debug.LogWarning("MissionManager: PlayerStats not assigned — rewards not applied.");
+        }
+
+        DespawnObjective();
         HUDManager.Instance?.OnMissionCompleted(_currentMission);
 
         _currentMission = null;
     }
 
-   public void FailMission()
+    public void FailMission()
     {
         if (!IsMissionActive) return;
 
         _missionStates[_currentMission.missionName] = MissionState.Failed;
 
         DespawnObjective();
-
         HUDManager.Instance?.OnMissionFailed(_currentMission);
 
         _currentMission = null;
     }
 
-    // Called by anything to make a mission available
-    // This is the hook that cutscenes and story events will call later
     public void UnlockMission(MissionData mission)
     {
         if (mission == null) return;
 
-        MissionState current = GetMissionState(mission);
-
-        if (current == MissionState.Locked)
-        {
+        if (GetMissionState(mission) == MissionState.Locked)
             _missionStates[mission.missionName] = MissionState.Available;
-        }
     }
 
     public MissionState GetMissionState(MissionData mission)
@@ -138,10 +142,7 @@ public class MissionManager : MonoBehaviour
 
     private void SpawnObjective(MissionData mission)
     {
-        if (missionObjectivePrefab == null)
-        {
-            return;
-        }
+        if (missionObjectivePrefab == null) return;
 
         _activeObjective = Instantiate(
             missionObjectivePrefab,

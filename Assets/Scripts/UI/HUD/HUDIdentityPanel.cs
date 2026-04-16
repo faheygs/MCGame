@@ -1,0 +1,110 @@
+using UnityEngine;
+using TMPro;
+using System.Collections;
+
+// HUDIdentityPanel owns the bottom-left identity cluster.
+// Displays money, rank, and rep bar.
+// Money animates when value changes.
+// Rep bar fills based on current reputation progress.
+
+public class HUDIdentityPanel : MonoBehaviour
+{
+    [Header("References")]
+    [SerializeField] private TextMeshProUGUI moneyText;
+    [SerializeField] private TextMeshProUGUI rankText;
+    [SerializeField] private RectTransform repBarFill;
+
+    [Header("Settings")]
+    [SerializeField] private float moneyAnimDuration = 0.5f;
+
+    [Header("Data")]
+    [SerializeField] private PlayerStats playerStats;
+
+    private int _displayedMoney;
+    private Coroutine _moneyAnimCoroutine;
+
+    private void OnEnable()
+    {
+        playerStats.OnMoneyChanged += HandleMoneyChanged;
+        playerStats.OnReputationChanged += HandleReputationChanged;
+        playerStats.OnRankChanged += HandleRankChanged;
+    }
+
+    private void OnDisable()
+    {
+        playerStats.OnMoneyChanged -= HandleMoneyChanged;
+        playerStats.OnReputationChanged -= HandleReputationChanged;
+        playerStats.OnRankChanged -= HandleRankChanged;
+    }
+
+    private void Start()
+    {
+        RefreshAll();
+    }
+
+    private void RefreshAll()
+    {
+        _displayedMoney = playerStats.Money;
+        moneyText.text = FormatMoney(playerStats.Money);
+        rankText.text = playerStats.clubRank.ToUpper();
+        UpdateRepBar();
+    }
+
+    // --- Money ---
+
+    private void HandleMoneyChanged(int newMoney)
+    {
+        if (_moneyAnimCoroutine != null)
+            StopCoroutine(_moneyAnimCoroutine);
+
+        _moneyAnimCoroutine = StartCoroutine(AnimateMoney(_displayedMoney, newMoney));
+    }
+
+    private IEnumerator AnimateMoney(int from, int to)
+    {
+        float elapsed = 0f;
+
+        while (elapsed < moneyAnimDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / moneyAnimDuration);
+            t = 1f - Mathf.Pow(1f - t, 3f);
+            int current = Mathf.RoundToInt(Mathf.Lerp(from, to, t));
+            moneyText.text = FormatMoney(current);
+            yield return null;
+        }
+
+        _displayedMoney = to;
+        moneyText.text = FormatMoney(to);
+    }
+
+    private string FormatMoney(int amount)
+    {
+        return "$" + amount.ToString("N0");
+    }
+
+    // --- Reputation ---
+
+    private void HandleReputationChanged(int newRep)
+    {
+        UpdateRepBar();
+    }
+
+    private void UpdateRepBar()
+    {
+        float fill = (float)playerStats.Reputation / playerStats.ReputationToNextRank;
+        fill = Mathf.Clamp01(fill);
+
+        Vector2 size = repBarFill.sizeDelta;
+        RectTransform parentRect = repBarFill.parent.GetComponent<RectTransform>();
+        float maxWidth = parentRect.rect.width;
+        repBarFill.sizeDelta = new Vector2(maxWidth * fill, size.y);
+    }
+
+    // --- Rank ---
+
+    private void HandleRankChanged(string newRank)
+    {
+        rankText.text = newRank.ToUpper();
+    }
+}

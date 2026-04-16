@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStats
   clubRank: Prospect
   playerName: FaheyBaby
-  _money: 0
+  _money: 500
   _reputation: 0
   _reputationToNextRank: 500
   _health: 100
