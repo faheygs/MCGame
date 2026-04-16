@@ -11,10 +11,18 @@ public class HUDManager : MonoBehaviour
     [SerializeField] private HUDMissionPanel missionPanel;
     [SerializeField] private HUDIdentityPanel identityPanel;
     [SerializeField] private HUDVitalsPanel vitalsPanel;
-    [SerializeField] private HUDHeatPanel heatPanel;
 
     [Header("Notifications")]
     [SerializeField] private HUDNotificationSystem notificationSystem;
+
+    [Header("Heat")]
+    [SerializeField] private HUDHeatPanel heatPanel;
+
+    [Header("Data")]
+    [SerializeField] private PlayerStats playerStats;
+
+    private int _previousHeatLevel;
+    private bool _maxHeatNotified;
 
     private void Awake()
     {
@@ -62,18 +70,51 @@ public class HUDManager : MonoBehaviour
 
     public void ShowToast(string message)
     {
-        notificationSystem.ShowToast(message);
+        notificationSystem.ShowNotification(message);
     }
 
     public void ShowFloatingNumber(string text, Vector2 position, Color color)
     {
-        notificationSystem.ShowFloatingNumber(text, position, color);
+        // Floating numbers not yet implemented — placeholder
     }
 
-    // --- Heat ---
-
+    //Heat
     public void SetHeatLevel(int level)
     {
         heatPanel.SetHeatLevel(level);
+    }
+
+    // --- Heat ---
+    private void OnEnable()
+    {
+        playerStats.OnHeatChanged += HandleHeatChanged;
+    }
+
+    private void OnDisable()
+    {
+        playerStats.OnHeatChanged -= HandleHeatChanged;
+    }
+
+    private void HandleHeatChanged(int newLevel)
+    {
+        if (newLevel > _previousHeatLevel)
+        {
+            if (newLevel == playerStats.MaxHeatLevel && !_maxHeatNotified)
+            {
+                notificationSystem.ShowWarningNotification("MAXIMUM HEAT — LAY LOW");
+                _maxHeatNotified = true;
+            }
+            else if (newLevel < playerStats.MaxHeatLevel)
+            {
+                notificationSystem.ShowNotification("HEAT INCREASED");
+            }
+        }
+        else if (newLevel < _previousHeatLevel)
+        {
+            _maxHeatNotified = false;
+            notificationSystem.ShowNotification("HEAT DECREASED");
+        }
+
+        _previousHeatLevel = newLevel;
     }
 }
