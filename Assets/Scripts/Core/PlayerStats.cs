@@ -16,6 +16,7 @@ public class PlayerStats : ScriptableObject
     [Header("Economy")]
     [SerializeField] private int _money = 0;
     [SerializeField] private int _reputation = 0;
+    [SerializeField] private int _totalReputation = 0;
     [SerializeField] private int _reputationToNextRank = 500;
 
     [Header("Health")]
@@ -41,6 +42,7 @@ public class PlayerStats : ScriptableObject
     // Public accessors
     public int Money => _money;
     public int Reputation => _reputation;
+    public int TotalReputation => _totalReputation;
     public int ReputationToNextRank => _reputationToNextRank;
     public float Health => _health;
     public float MaxHealth => _maxHealth;
@@ -59,6 +61,7 @@ public class PlayerStats : ScriptableObject
     {
         _money = 0;
         _reputation = 0;
+        _totalReputation = 0;
         _health = _maxHealth;
         _heatLevel = 0;
         _currentAmmo = 0;
@@ -81,8 +84,9 @@ public class PlayerStats : ScriptableObject
     public void AddReputation(int amount)
     {
         _reputation += amount;
-        OnReputationChanged?.Invoke(_reputation);
+        _totalReputation += amount;
         CheckRankUp();
+        OnReputationChanged?.Invoke(_reputation);
     }
 
     // --- Health ---
@@ -134,6 +138,8 @@ public class PlayerStats : ScriptableObject
 
     private void PromoteRank()
     {
+        _reputation = 0;
+
         // Rank progression for an MC
         switch (clubRank)
         {

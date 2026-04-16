@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f479e72466a901d469b1eaa292d17c24, type: 3}
   m_Name: PlayerStats
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStats
-  clubRank: Prospect
+  clubRank: President
   playerName: FaheyBaby
-  _money: 500
+  _money: 0
   _reputation: 0
   _reputationToNextRank: 500
   _health: 100

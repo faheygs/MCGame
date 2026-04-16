@@ -1,9 +1,10 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 
 // HUDIdentityPanel owns the bottom-left identity cluster.
-// Displays money, rank, and rep bar.
+// Displays money, rank, patch icon, and rep bar.
 // Money animates when value changes.
 // Rep bar fills based on current reputation progress.
 
@@ -47,6 +48,7 @@ public class HUDIdentityPanel : MonoBehaviour
         _displayedMoney = playerStats.Money;
         moneyText.text = FormatMoney(playerStats.Money);
         rankText.text = playerStats.clubRank.ToUpper();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rankText.rectTransform);
         UpdateRepBar();
     }
 
@@ -80,7 +82,7 @@ public class HUDIdentityPanel : MonoBehaviour
 
     private string FormatMoney(int amount)
     {
-        return "$" + amount.ToString("N0");
+        return "$" + amount.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     // --- Reputation ---
@@ -104,5 +106,6 @@ public class HUDIdentityPanel : MonoBehaviour
     private void HandleRankChanged(string newRank)
     {
         rankText.text = newRank.ToUpper();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rankText.rectTransform);
     }
 }
