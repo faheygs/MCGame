@@ -48,13 +48,11 @@ public class MissionManager : MonoBehaviour
     {
         if (IsMissionActive)
         {
-            Debug.Log("MissionManager: A mission is already active.");
             return;
         }
 
         if (GetMissionState(mission) != MissionState.Available)
         {
-            Debug.Log($"MissionManager: {mission.missionName} is not available.");
             return;
         }
 
@@ -63,8 +61,6 @@ public class MissionManager : MonoBehaviour
 
         SpawnObjective(mission);
         HUDManager.Instance?.OnMissionStarted(mission);
-
-        Debug.Log($"Mission started: {mission.missionName}");
     }
 
     public void CompleteMission()
@@ -87,10 +83,6 @@ public class MissionManager : MonoBehaviour
 
             if (_currentMission.reputationReward > 0)
                 playerStats.AddReputation(_currentMission.reputationReward);
-        }
-        else
-        {
-            Debug.LogWarning("MissionManager: PlayerStats not assigned — rewards not applied.");
         }
 
         DespawnObjective();

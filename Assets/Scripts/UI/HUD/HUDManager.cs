@@ -21,9 +21,6 @@ public class HUDManager : MonoBehaviour
     [Header("Data")]
     [SerializeField] private PlayerStats playerStats;
 
-    private int _previousHeatLevel;
-    private bool _maxHeatNotified;
-
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -82,39 +79,5 @@ public class HUDManager : MonoBehaviour
     public void SetHeatLevel(int level)
     {
         heatPanel.SetHeatLevel(level);
-    }
-
-    // --- Heat ---
-    private void OnEnable()
-    {
-        playerStats.OnHeatChanged += HandleHeatChanged;
-    }
-
-    private void OnDisable()
-    {
-        playerStats.OnHeatChanged -= HandleHeatChanged;
-    }
-
-    private void HandleHeatChanged(int newLevel)
-    {
-        if (newLevel > _previousHeatLevel)
-        {
-            if (newLevel == playerStats.MaxHeatLevel && !_maxHeatNotified)
-            {
-                notificationSystem.ShowWarningNotification("MAXIMUM HEAT — LAY LOW");
-                _maxHeatNotified = true;
-            }
-            else if (newLevel < playerStats.MaxHeatLevel)
-            {
-                notificationSystem.ShowNotification("HEAT INCREASED");
-            }
-        }
-        else if (newLevel < _previousHeatLevel)
-        {
-            _maxHeatNotified = false;
-            notificationSystem.ShowNotification("HEAT DECREASED");
-        }
-
-        _previousHeatLevel = newLevel;
     }
 }

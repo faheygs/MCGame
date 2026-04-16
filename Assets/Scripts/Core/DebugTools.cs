@@ -1,9 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// DebugTools — temporary testing utility.
-// Remove or disable before shipping.
-
 public class DebugTools : MonoBehaviour
 {
     [Header("Data")]

@@ -74,7 +74,6 @@ public class HUDHeatPanel : MonoBehaviour
 
     private IEnumerator PulseAndFadeBorder()
     {
-        Debug.Log("Coroutine started");
         float t = 0f;
 
         while (_isPulsing)
@@ -84,8 +83,6 @@ public class HUDHeatPanel : MonoBehaviour
             minimapBorder.color = Color.Lerp(baseColor, warningColor, lerp);
             yield return null;
         }
-
-        Debug.Log("Exited pulse loop — starting fade");
 
         Color startColor = minimapBorder.color;
         float elapsed = 0f;
@@ -99,10 +96,7 @@ public class HUDHeatPanel : MonoBehaviour
         }
 
         minimapBorder.color = baseColor;
-        Debug.Log("Border color after fade: " + minimapBorder.color);
-yield return new WaitForSeconds(0.1f);
-Debug.Log("Border color 0.1s later: " + minimapBorder.color);
-        Debug.Log("Fade complete");
+        yield return new WaitForSeconds(0.1f);
     }
 
     public void SetHeatLevel(int level)
