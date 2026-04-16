@@ -92,13 +92,11 @@ public class HUDIdentityPanel : MonoBehaviour
 
     private void UpdateRepBar()
     {
-        float fill = (float)playerStats.Reputation / playerStats.ReputationToNextRank;
-        fill = Mathf.Clamp01(fill);
-
-        Vector2 size = repBarFill.sizeDelta;
-        RectTransform parentRect = repBarFill.parent.GetComponent<RectTransform>();
-        float maxWidth = parentRect.rect.width;
-        repBarFill.sizeDelta = new Vector2(maxWidth * fill, size.y);
+        float fill = Mathf.Clamp01((float)playerStats.Reputation / playerStats.ReputationToNextRank);
+        repBarFill.anchorMin = new Vector2(0, 0);
+        repBarFill.anchorMax = new Vector2(fill, 1);
+        repBarFill.offsetMin = Vector2.zero;
+        repBarFill.offsetMax = Vector2.zero;
     }
 
     // --- Rank ---

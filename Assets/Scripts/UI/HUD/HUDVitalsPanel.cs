@@ -61,9 +61,10 @@ public class HUDVitalsPanel : MonoBehaviour
     private void UpdateBar(float health)
     {
         float fill = Mathf.Clamp01(health / playerStats.MaxHealth);
-        RectTransform parentRect = hpBarFill.parent.GetComponent<RectTransform>();
-        float maxWidth = parentRect.rect.width;
-        hpBarFill.sizeDelta = new Vector2(maxWidth * fill, hpBarFill.sizeDelta.y);
+        hpBarFill.anchorMin = new Vector2(0, 0);
+        hpBarFill.anchorMax = new Vector2(fill, 1);
+        hpBarFill.offsetMin = Vector2.zero;
+        hpBarFill.offsetMax = Vector2.zero;
     }
 
     private void PulseBar()

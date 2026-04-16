@@ -30,8 +30,7 @@ public class HUDManager : MonoBehaviour
 
     public void OnMissionStarted(MissionData mission)
     {
-        Transform player = GameObject.FindWithTag("Player")?.transform;
-        missionPanel.ShowMission(mission.missionName, mission.briefingText, null, player);
+        missionPanel.ShowMission(mission.missionName, mission.briefingText);
         ShowToast("NEW JOB: " + mission.missionName.ToUpper());
     }
 
