@@ -1,4 +1,8 @@
 using UnityEngine;
+using System.Collections;
+
+// MissionGiver detects player proximity and reports to UIManager.
+// It does not control any UI directly.
 
 public class MissionGiver : MonoBehaviour
 {
@@ -12,10 +16,21 @@ public class MissionGiver : MonoBehaviour
     private Transform _player;
     private bool _playerInRange;
     private bool _isRegistered;
+    private int _minimapMarkerId = -1;
 
-    private void Start()
+    private IEnumerator Start()
     {
         _player = GameObject.FindWithTag("Player").transform;
+
+        // Wait until MinimapMarkerManager is ready before registering
+        yield return new WaitUntil(() => 
+            MinimapMarkerManager.Instance != null && 
+            MinimapMarkerManager.Instance.IsReady);
+
+        _minimapMarkerId = MinimapMarkerManager.Instance.RegisterMissionMarker(
+            () => transform.position
+        );
+
         UpdateVisibility();
     }
 
@@ -28,6 +43,9 @@ public class MissionGiver : MonoBehaviour
 
         foreach (Transform child in transform)
             child.gameObject.SetActive(visible);
+
+        if (_minimapMarkerId >= 0 && MinimapMarkerManager.Instance != null)
+            MinimapMarkerManager.Instance.SetMissionMarkerVisible(_minimapMarkerId, visible);
     }
 
     private void Update()
@@ -80,6 +98,12 @@ public class MissionGiver : MonoBehaviour
         {
             UIManager.Instance.UnregisterNearbyGiver();
             _isRegistered = false;
+        }
+
+        if (_minimapMarkerId >= 0 && MinimapMarkerManager.Instance != null)
+        {
+            MinimapMarkerManager.Instance.UnregisterMissionMarker(_minimapMarkerId);
+            _minimapMarkerId = -1;
         }
     }
 

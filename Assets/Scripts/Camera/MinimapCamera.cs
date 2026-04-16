@@ -20,12 +20,8 @@ public class MinimapCamera : MonoBehaviour
             target.position.z
         );
 
-        // Rotate to match player's Y rotation
-        // Camera looks down so we only rotate on Y axis
-        transform.rotation = Quaternion.Euler(
-            90f,
-            target.eulerAngles.y,
-            0f
-        );
+        ThirdPersonCamera cam = Camera.main.GetComponent<ThirdPersonCamera>();
+        if (cam != null)
+            transform.rotation = Quaternion.Euler(90f, cam.GetCameraRotation().eulerAngles.y, 0f);
     }
 }

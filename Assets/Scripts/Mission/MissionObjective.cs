@@ -1,16 +1,22 @@
 using UnityEngine;
 
 // MissionObjective is spawned dynamically by MissionManager when a mission starts.
-// It despawns automatically when the mission completes.
+// It registers itself as a minimap marker on spawn and cleans up on destroy.
 
 public class MissionObjective : MonoBehaviour
 {
     private float _triggerRadius = 3f;
     private Transform _player;
+    private int _minimapMarkerId = -1;
 
     private void Start()
     {
         _player = GameObject.FindWithTag("Player").transform;
+
+        if (MinimapMarkerManager.Instance != null)
+            _minimapMarkerId = MinimapMarkerManager.Instance.RegisterObjectiveMarker(
+                () => transform.position
+            );
     }
 
     public void SetRadius(float radius)
@@ -29,6 +35,15 @@ public class MissionObjective : MonoBehaviour
         if (distance <= _triggerRadius)
         {
             MissionManager.Instance.CompleteMission();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (_minimapMarkerId >= 0 && MinimapMarkerManager.Instance != null)
+        {
+            MinimapMarkerManager.Instance.UnregisterMissionMarker(_minimapMarkerId);
+            _minimapMarkerId = -1;
         }
     }
 

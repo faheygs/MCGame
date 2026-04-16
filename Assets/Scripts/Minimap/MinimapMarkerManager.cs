@@ -13,7 +13,7 @@ public class MinimapMarkerManager : MonoBehaviour
     public static MinimapMarkerManager Instance { get; private set; }
 
     [Header("Camera")]
-    [SerializeField] private Transform minimapCameraTransform;
+    [SerializeField] private ThirdPersonCamera thirdPersonCamera;
     [SerializeField] private float orthographicSize = 20f;
 
     [Header("Player")]
@@ -23,14 +23,17 @@ public class MinimapMarkerManager : MonoBehaviour
     [SerializeField] private Sprite playerSprite;
     [SerializeField] private Sprite waypointSprite;
     [SerializeField] private Sprite missionSprite;
+    [SerializeField] private Sprite objectiveSprite;
 
     [Header("Marker Sizes")]
     [SerializeField] private float playerMarkerSize = 24f;
     [SerializeField] private float waypointMarkerSize = 20f;
     [SerializeField] private float missionMarkerSize = 18f;
+    [SerializeField] private float objectiveMarkerSize = 20f;
 
     [Header("Colors")]
     [SerializeField] private Color playerColor = Color.white;
+    [SerializeField] private Color objectiveColor = Color.white;
     [SerializeField] private Color waypointColor = new Color(0.831f, 0.388f, 0.102f);
     [SerializeField] private Color missionColor = new Color(0.941f, 0.753f, 0.251f);
 
@@ -39,6 +42,7 @@ public class MinimapMarkerManager : MonoBehaviour
     private RectTransform _markerContainer;
     private float _mapRadius;
     private bool _isReady = false;
+    public bool IsReady => _isReady;
 
     // ---------------------------------------------------------------
     // Internal marker data
@@ -68,41 +72,46 @@ public class MinimapMarkerManager : MonoBehaviour
             return;
         }
         Instance = this;
-
-        // Reset transform — this object should always be at world origin
         transform.position = Vector3.zero;
     }
 
     private IEnumerator Start()
     {
-        // Find UI references by name at runtime
-        // Avoids Unity's cross-object serialized reference dropping on Play
+        // Find ThirdPersonCamera if not assigned
+        if (thirdPersonCamera == null)
+            thirdPersonCamera = Camera.main.GetComponent<ThirdPersonCamera>();
+
+        if (thirdPersonCamera == null)
+        {
+            Debug.LogError("MinimapMarkerManager: Could not find ThirdPersonCamera on Main Camera.");
+            yield break;
+        }
+
         GameObject maskObj = GameObject.Find("MinimapMask");
         GameObject containerObj = GameObject.Find("MinimapMarkerContainer");
 
         if (maskObj == null)
         {
-            Debug.LogError("MinimapMarkerManager: Could not find 'MinimapMask' in scene. Check the name matches exactly.");
+            Debug.LogError("MinimapMarkerManager: Could not find 'MinimapMask' in scene.");
             yield break;
         }
 
         if (containerObj == null)
         {
-            Debug.LogError("MinimapMarkerManager: Could not find 'MinimapMarkerContainer' in scene. Check the name matches exactly.");
+            Debug.LogError("MinimapMarkerManager: Could not find 'MinimapMarkerContainer' in scene.");
             yield break;
         }
 
         _minimapMask = maskObj.GetComponent<RectTransform>();
         _markerContainer = containerObj.GetComponent<RectTransform>();
 
-        // Wait one frame for Canvas layout to finish calculating rect sizes
         yield return null;
 
         CacheMapRadius();
 
         if (_mapRadius <= 0f)
         {
-            Debug.LogError("MinimapMarkerManager: Map radius is zero. MinimapMask rect may not be calculated yet.");
+            Debug.LogError("MinimapMarkerManager: Map radius is zero.");
             yield break;
         }
 
@@ -146,14 +155,24 @@ public class MinimapMarkerManager : MonoBehaviour
         };
     }
 
-    /// <summary>
-    /// Register a mission marker. Returns an ID used to update or remove it later.
-    /// </summary>
     public int RegisterMissionMarker(System.Func<Vector3> getWorldPos)
     {
         MarkerData data = new MarkerData
         {
             icon = CreateIconObject("Marker_Mission", missionSprite, missionMarkerSize, missionColor),
+            getWorldPos = getWorldPos,
+            clampToEdge = true
+        };
+
+        _missionMarkers.Add(data);
+        return _missionMarkers.Count - 1;
+    }
+
+    public int RegisterObjectiveMarker(System.Func<Vector3> getWorldPos)
+    {
+        MarkerData data = new MarkerData
+        {
+            icon = CreateIconObject("Marker_Objective", objectiveSprite, objectiveMarkerSize, objectiveColor),
             getWorldPos = getWorldPos,
             clampToEdge = true
         };
@@ -256,6 +275,11 @@ public class MinimapMarkerManager : MonoBehaviour
         if (marker?.icon == null) return;
 
         Vector2 mapPos = WorldToMinimapPosition(marker.getWorldPos());
+
+        // Temporary debug
+        if (marker != _playerMarker && marker.visible)
+            Debug.Log($"WorldPos: {marker.getWorldPos()} | MapPos: {mapPos} | Radius: {_mapRadius}");
+
         float distFromCenter = mapPos.magnitude;
 
         if (distFromCenter <= _mapRadius)
@@ -277,17 +301,15 @@ public class MinimapMarkerManager : MonoBehaviour
     {
         Vector3 worldOffset = worldPos - playerTransform.position;
 
-        float camYRot = minimapCameraTransform.eulerAngles.y;
-        float rad = -camYRot * Mathf.Deg2Rad;
+        float camYRot = thirdPersonCamera.GetCameraRotation().eulerAngles.y;
+        float rad = camYRot * Mathf.Deg2Rad;
         float cos = Mathf.Cos(rad);
         float sin = Mathf.Sin(rad);
 
+        // Using same rotation as MinimapCamera
         float rotatedX = worldOffset.x * cos - worldOffset.z * sin;
         float rotatedZ = worldOffset.x * sin + worldOffset.z * cos;
 
-        float normalizedX = rotatedX / orthographicSize;
-        float normalizedZ = rotatedZ / orthographicSize;
-
-        return new Vector2(normalizedX * _mapRadius, normalizedZ * _mapRadius);
+        return new Vector2(rotatedX / orthographicSize * _mapRadius, rotatedZ / orthographicSize * _mapRadius);
     }
 }
