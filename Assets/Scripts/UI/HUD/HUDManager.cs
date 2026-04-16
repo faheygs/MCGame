@@ -47,14 +47,17 @@ public class HUDManager : MonoBehaviour
     public void OnMissionCompleted(MissionData mission)
     {
         missionPanel.HidePanel();
-        ShowToast("JOB DONE");
 
-        if (mission.moneyReward > 0)
-            ShowFloatingNumber(
-                "$" + mission.moneyReward.ToString("N0"),
-                Vector2.zero,
-                new Color(0.831f, 0.388f, 0.102f)
-            );
+        string message = $"JOB DONE — {mission.missionName.ToUpper()}";
+
+        if (mission.moneyReward > 0 || mission.reputationReward > 0)
+        {
+            message += $"\n${mission.moneyReward:N0} EARNED";
+            if (mission.reputationReward > 0)
+                message += $"  |  +{mission.reputationReward} REP";
+        }
+
+        notificationSystem.ShowSuccessNotification(message);
     }
 
     public void OnMissionFailed(MissionData mission)
