@@ -1,8 +1,5 @@
 using UnityEngine;
 
-// MissionGiver detects player proximity and reports to UIManager.
-// It does not control any UI directly.
-
 public class MissionGiver : MonoBehaviour
 {
     [Header("Mission")]
@@ -27,16 +24,10 @@ public class MissionGiver : MonoBehaviour
         if (MissionManager.Instance == null) return;
 
         MissionState state = MissionManager.Instance.GetMissionState(missionToGive);
-
-        // Only show when Available — hide when Active, Completed, Locked, Failed
         bool visible = state == MissionState.Available;
 
         foreach (Transform child in transform)
             child.gameObject.SetActive(visible);
-
-        MinimapMarker marker = GetComponent<MinimapMarker>();
-        if (marker != null)
-            marker.SetVisible(visible);
     }
 
     private void Update()
@@ -53,7 +44,6 @@ public class MissionGiver : MonoBehaviour
         float distance = Vector3.Distance(transform.position, _player.position);
         bool inRange = distance <= interactRange;
 
-        // Only register/unregister when range or availability changes
         bool shouldBeRegistered = inRange && missionAvailable;
 
         if (shouldBeRegistered && !_isRegistered)
@@ -86,7 +76,6 @@ public class MissionGiver : MonoBehaviour
 
     private void OnDisable()
     {
-        // Clean up registration if object is disabled
         if (_isRegistered && UIManager.Instance != null)
         {
             UIManager.Instance.UnregisterNearbyGiver();

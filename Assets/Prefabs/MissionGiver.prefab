@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5800705810598617660}
   - component: {fileID: 5342168891083543931}
-  - component: {fileID: 4216924553607529572}
   m_Layer: 0
   m_Name: MissionGiver
   m_TagString: Untagged
@@ -49,20 +48,6 @@ MonoBehaviour:
   missionToGive: {fileID: 11400000, guid: f49815f5b0ee6584baf1c5e67dd5313e, type: 2}
   interactRange: 3
   inputReader: {fileID: 11400000, guid: 893ce312c7f9979449c76bffff519bf3, type: 2}
---- !u!114 &4216924553607529572
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633505328700512563}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7eacc1ba22aa4c947ad173c7631dc67e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MinimapMarker
-  markerMaterial: {fileID: 2100000, guid: 6be278f5cbeed9245a6456a2e6b83b53, type: 2}
-  markerSize: 2
 --- !u!1 &6738703079358836473
 GameObject:
   m_ObjectHideFlags: 0
