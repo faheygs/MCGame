@@ -4,7 +4,8 @@ using UnityEngine.InputSystem;
 
 // UIManager handles interaction prompts only.
 // Mission UI is handled by HUDManager.
-// Proximity registration is handled by MissionGiver.
+// Tracks two categories of nearby interactables: missions and vehicles.
+// Vehicle prompt takes priority when both are registered simultaneously.
 
 public class UIManager : MonoBehaviour
 {
@@ -13,7 +14,9 @@ public class UIManager : MonoBehaviour
     [Header("Interaction UI")]
     [SerializeField] private TextMeshProUGUI interactPromptText;
 
-    private int _nearbyGiverCount = 0;
+    // Separate counters per interactable category so prompts can show context-appropriate text.
+    private int _nearbyMissionCount = 0;
+    private int _nearbyVehicleCount = 0;
 
     private void Awake()
     {
@@ -27,37 +30,72 @@ public class UIManager : MonoBehaviour
         HideInteractPrompt();
     }
 
-    public void RegisterNearbyGiver()
+    // --- Mission interactables ---
+
+    public void RegisterMissionInteractable()
     {
-        _nearbyGiverCount++;
+        _nearbyMissionCount++;
         UpdateInteractPrompt();
     }
 
-    public void UnregisterNearbyGiver()
+    public void UnregisterMissionInteractable()
     {
-        _nearbyGiverCount = Mathf.Max(0, _nearbyGiverCount - 1);
+        _nearbyMissionCount = Mathf.Max(0, _nearbyMissionCount - 1);
         UpdateInteractPrompt();
     }
+
+    // --- Vehicle interactables ---
+
+    public void RegisterVehicleInteractable()
+    {
+        _nearbyVehicleCount++;
+        UpdateInteractPrompt();
+    }
+
+    public void UnregisterVehicleInteractable()
+    {
+        _nearbyVehicleCount = Mathf.Max(0, _nearbyVehicleCount - 1);
+        UpdateInteractPrompt();
+    }
+
+    // --- Prompt resolution ---
 
     private void UpdateInteractPrompt()
     {
-        bool show = _nearbyGiverCount > 0 &&
-                    !MissionManager.Instance.IsMissionActive;
-
         if (interactPromptText == null) return;
 
-        interactPromptText.gameObject.SetActive(show);
+        bool vehicleAvailable = _nearbyVehicleCount > 0;
+        bool missionAvailable = _nearbyMissionCount > 0 &&
+                                MissionManager.Instance != null &&
+                                !MissionManager.Instance.IsMissionActive;
 
-        if (show)
+        // Vehicle prompt takes priority if both are registered.
+        if (vehicleAvailable)
         {
-            bool usingGamepad = Gamepad.current != null &&
-                                Gamepad.current == InputSystem.GetDevice<Gamepad>();
-
-            interactPromptText.text = usingGamepad
-                ? "Press Y to interact"
-                : "Press E to interact";
+            interactPromptText.text = GetPromptText("Mount");
+            interactPromptText.gameObject.SetActive(true);
+        }
+        else if (missionAvailable)
+        {
+            interactPromptText.text = GetPromptText("Interact");
+            interactPromptText.gameObject.SetActive(true);
+        }
+        else
+        {
+            interactPromptText.gameObject.SetActive(false);
         }
     }
+
+    private string GetPromptText(string action)
+    {
+        bool usingGamepad = Gamepad.current != null &&
+                            Gamepad.current == InputSystem.GetDevice<Gamepad>();
+
+        string button = usingGamepad ? "Y" : "E";
+        return $"Press {button} to {action}";
+    }
+
+    // --- Manual prompt control (for special cases outside mission/vehicle system) ---
 
     public void ShowInteractPrompt(string text)
     {

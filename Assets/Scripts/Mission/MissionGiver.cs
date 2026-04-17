@@ -61,25 +61,34 @@ public class MissionGiver : MonoBehaviour
         bool missionAvailable = MissionManager.Instance.GetMissionState(missionToGive)
                                 == MissionState.Available;
 
+        // Block prompt while player is mounted on a vehicle.
+        bool playerOnFoot = PlayerStateManager.Instance == null ||
+                            !PlayerStateManager.Instance.IsInVehicle;
+
         float distance = Vector3.Distance(transform.position, _player.position);
         bool inRange = distance <= interactRange;
 
-        bool shouldBeRegistered = inRange && missionAvailable;
+        bool shouldBeRegistered = inRange && missionAvailable && playerOnFoot;
 
         if (shouldBeRegistered && !_isRegistered)
         {
-            UIManager.Instance.RegisterNearbyGiver();
+            UIManager.Instance.RegisterMissionInteractable();
             _isRegistered = true;
         }
         else if (!shouldBeRegistered && _isRegistered)
         {
-            UIManager.Instance.UnregisterNearbyGiver();
+            UIManager.Instance.UnregisterMissionInteractable();
             _isRegistered = false;
         }
 
         _playerInRange = inRange;
 
-        if (_playerInRange && missionAvailable && inputReader.InteractInput)
+        // Respect state-change cooldown — prevents dismount press from immediately
+        // triggering a mission start in the same frame.
+        bool stateCooldownActive = PlayerStateManager.Instance != null &&
+                                   PlayerStateManager.Instance.JustChangedState;
+
+        if (_playerInRange && missionAvailable && !stateCooldownActive && inputReader.InteractInput)
         {
             TryGiveMission();
         }
@@ -89,8 +98,12 @@ public class MissionGiver : MonoBehaviour
     {
         if (MissionManager.Instance.IsMissionActive) return;
 
+        // Defensive: never start a mission while the player is mounted.
+        // Update() already blocks the prompt, but this prevents any edge-case slip-through.
+        if (PlayerStateManager.Instance != null && PlayerStateManager.Instance.IsInVehicle) return;
+
         MissionManager.Instance.StartMission(missionToGive);
-        UIManager.Instance.UnregisterNearbyGiver();
+        UIManager.Instance.UnregisterMissionInteractable();
         _isRegistered = false;
     }
 
@@ -98,7 +111,7 @@ public class MissionGiver : MonoBehaviour
     {
         if (_isRegistered && UIManager.Instance != null)
         {
-            UIManager.Instance.UnregisterNearbyGiver();
+            UIManager.Instance.UnregisterMissionInteractable();
             _isRegistered = false;
         }
 

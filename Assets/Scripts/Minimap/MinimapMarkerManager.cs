@@ -74,7 +74,6 @@ public class MinimapMarkerManager : MonoBehaviour
 
         if (thirdPersonCamera == null)
         {
-            Debug.LogError("MinimapMarkerManager: Could not find ThirdPersonCamera.");
             yield break;
         }
 
@@ -83,13 +82,11 @@ public class MinimapMarkerManager : MonoBehaviour
 
         if (maskObj == null)
         {
-            Debug.LogError("MinimapMarkerManager: Could not find 'MinimapMask'.");
             yield break;
         }
 
         if (containerObj == null)
         {
-            Debug.LogError("MinimapMarkerManager: Could not find 'MinimapMarkerContainer'.");
             yield break;
         }
 
@@ -102,7 +99,6 @@ public class MinimapMarkerManager : MonoBehaviour
 
         if (_mapRadius <= 0f)
         {
-            Debug.LogError("MinimapMarkerManager: Map radius is zero.");
             yield break;
         }
 
@@ -234,7 +230,6 @@ public class MinimapMarkerManager : MonoBehaviour
     {
         if (_markerContainer == null)
         {
-            Debug.LogError($"MinimapMarkerManager: Cannot create icon '{name}' — markerContainer is null.");
             return null;
         }
 
