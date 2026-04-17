@@ -46,8 +46,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MissionGiver
   missionToGive: {fileID: 11400000, guid: f49815f5b0ee6584baf1c5e67dd5313e, type: 2}
-  interactRange: 3
-  inputReader: {fileID: 11400000, guid: 893ce312c7f9979449c76bffff519bf3, type: 2}
+  interactRange: 2
+  priority: 5
 --- !u!1 &6738703079358836473
 GameObject:
   m_ObjectHideFlags: 0

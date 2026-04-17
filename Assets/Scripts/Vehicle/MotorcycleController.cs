@@ -59,11 +59,6 @@ public class MotorcycleController : MonoBehaviour
     private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
-
-        if (inputReader == null)
-            Debug.LogError($"[MotorcycleController] InputReader not assigned on {name}.");
-        if (bodyVisual == null)
-            Debug.LogWarning($"[MotorcycleController] BodyVisual not assigned on {name}. Lean will not be visible.");
     }
 
     private void FixedUpdate()

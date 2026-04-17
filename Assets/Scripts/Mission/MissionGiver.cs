@@ -1,20 +1,22 @@
 using UnityEngine;
 using System.Collections;
 
-// MissionGiver detects player proximity and reports to UIManager.
-// It does not control any UI directly.
+// MissionGiver represents a point in the world where the player can start a mission.
+// Implements IInteractable — registers with InteractionManager when relevant
+// (player in range, mission available, player on foot), unregisters otherwise.
+// InteractionManager owns prompt display and input handling.
 
-public class MissionGiver : MonoBehaviour
+public class MissionGiver : MonoBehaviour, IInteractable
 {
     [Header("Mission")]
     [SerializeField] private MissionData missionToGive;
 
     [Header("Interaction Settings")]
-    [SerializeField] private float interactRange = 3f;
-    [SerializeField] private InputReader inputReader;
+    [SerializeField] private float interactRange = 2f;
+    [Tooltip("Higher priority wins over lower interactables when both are in range.")]
+    [SerializeField] private int priority = 5;
 
     private Transform _player;
-    private bool _playerInRange;
     private bool _isRegistered;
     private int _minimapMarkerId = -1;
     public int MinimapMarkerId => _minimapMarkerId;
@@ -25,8 +27,8 @@ public class MissionGiver : MonoBehaviour
         _player = GameObject.FindWithTag("Player").transform;
 
         // Wait until MinimapMarkerManager is ready before registering
-        yield return new WaitUntil(() => 
-            MinimapMarkerManager.Instance != null && 
+        yield return new WaitUntil(() =>
+            MinimapMarkerManager.Instance != null &&
             MinimapMarkerManager.Instance.IsReady);
 
         _minimapMarkerId = MinimapMarkerManager.Instance.RegisterMissionMarker(
@@ -34,6 +36,31 @@ public class MissionGiver : MonoBehaviour
         );
 
         UpdateVisibility();
+    }
+
+    private void OnDisable()
+    {
+        // Always ensure we unregister from the interaction manager on disable.
+        if (_isRegistered && InteractionManager.Instance != null)
+        {
+            InteractionManager.Instance.Unregister(this);
+            _isRegistered = false;
+        }
+
+        if (_minimapMarkerId >= 0 && MinimapMarkerManager.Instance != null)
+        {
+            MinimapMarkerManager.Instance.UnregisterMissionMarker(_minimapMarkerId);
+            _minimapMarkerId = -1;
+        }
+    }
+
+    private void Update()
+    {
+        if (_player == null) return;
+        if (MissionManager.Instance == null) return;
+
+        UpdateVisibility();
+        UpdateRegistration();
     }
 
     private void UpdateVisibility()
@@ -50,76 +77,66 @@ public class MissionGiver : MonoBehaviour
             MinimapMarkerManager.Instance.SetMissionMarkerVisible(_minimapMarkerId, visible);
     }
 
-    private void Update()
+    private void UpdateRegistration()
     {
-        if (_player == null) return;
-        if (MissionManager.Instance == null) return;
-        if (UIManager.Instance == null) return;
+        if (InteractionManager.Instance == null) return;
 
-        UpdateVisibility();
-
-        bool missionAvailable = MissionManager.Instance.GetMissionState(missionToGive)
-                                == MissionState.Available;
-
-        // Block prompt while player is mounted on a vehicle.
-        bool playerOnFoot = PlayerStateManager.Instance == null ||
-                            !PlayerStateManager.Instance.IsInVehicle;
-
-        float distance = Vector3.Distance(transform.position, _player.position);
-        bool inRange = distance <= interactRange;
-
-        bool shouldBeRegistered = inRange && missionAvailable && playerOnFoot;
+        bool shouldBeRegistered = ShouldBeRegistered();
 
         if (shouldBeRegistered && !_isRegistered)
         {
-            UIManager.Instance.RegisterMissionInteractable();
+            InteractionManager.Instance.Register(this);
             _isRegistered = true;
         }
         else if (!shouldBeRegistered && _isRegistered)
         {
-            UIManager.Instance.UnregisterMissionInteractable();
+            InteractionManager.Instance.Unregister(this);
             _isRegistered = false;
-        }
-
-        _playerInRange = inRange;
-
-        // Respect state-change cooldown — prevents dismount press from immediately
-        // triggering a mission start in the same frame.
-        bool stateCooldownActive = PlayerStateManager.Instance != null &&
-                                   PlayerStateManager.Instance.JustChangedState;
-
-        if (_playerInRange && missionAvailable && !stateCooldownActive && inputReader.InteractInput)
-        {
-            TryGiveMission();
         }
     }
 
-    private void TryGiveMission()
+    private bool ShouldBeRegistered()
     {
-        if (MissionManager.Instance.IsMissionActive) return;
+        // Must be in range
+        float distance = Vector3.Distance(transform.position, _player.position);
+        if (distance > interactRange) return false;
 
-        // Defensive: never start a mission while the player is mounted.
-        // Update() already blocks the prompt, but this prevents any edge-case slip-through.
-        if (PlayerStateManager.Instance != null && PlayerStateManager.Instance.IsInVehicle) return;
+        // Mission must be Available (not Locked, not Active, not Completed)
+        if (MissionManager.Instance.GetMissionState(missionToGive) != MissionState.Available)
+            return false;
 
+        // Player must be on foot (not mounted)
+        if (PlayerStateManager.Instance != null && PlayerStateManager.Instance.IsInVehicle)
+            return false;
+
+        return true;
+    }
+
+    // --- IInteractable implementation ---
+
+    public int Priority => priority;
+
+    public Vector3 GetPosition() => transform.position;
+
+    public string GetPromptText() => "Start Mission";
+
+    public bool ShouldShowPrompt() => true;
+
+    public bool CanInteract()
+    {
+        // Defensive final check — conditions may change between registration and input.
+        if (MissionManager.Instance == null) return false;
+        if (MissionManager.Instance.IsMissionActive) return false;
+        if (MissionManager.Instance.GetMissionState(missionToGive) != MissionState.Available) return false;
+        return true;
+    }
+
+    public void OnInteract()
+    {
+        if (!CanInteract()) return;
         MissionManager.Instance.StartMission(missionToGive);
-        UIManager.Instance.UnregisterMissionInteractable();
-        _isRegistered = false;
-    }
-
-    private void OnDisable()
-    {
-        if (_isRegistered && UIManager.Instance != null)
-        {
-            UIManager.Instance.UnregisterMissionInteractable();
-            _isRegistered = false;
-        }
-
-        if (_minimapMarkerId >= 0 && MinimapMarkerManager.Instance != null)
-        {
-            MinimapMarkerManager.Instance.UnregisterMissionMarker(_minimapMarkerId);
-            _minimapMarkerId = -1;
-        }
+        // InteractionManager's LateUpdate will detect the state change next frame
+        // and unregister us naturally (mission is no longer Available).
     }
 
     private void OnDrawGizmosSelected()

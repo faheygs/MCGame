@@ -1,17 +1,17 @@
 using UnityEngine;
 
 /// <summary>
-/// Handles player proximity, mount/dismount prompt, and E-press to mount/dismount.
-/// Lives on the Motorcycle GameObject alongside MotorcycleController.
+/// Handles player proximity and mount/dismount coordination for a single motorcycle.
+/// Implements IInteractable — registers with InteractionManager when the player is
+/// either (a) in range and on foot, or (b) currently mounted on this bike.
 ///
-/// Does not own state — PlayerStateManager does. This script just requests transitions.
-/// Does not control camera — ThirdPersonCamera subscribes to PlayerStateManager.OnStateChanged.
+/// Does not subscribe to input directly. InteractionManager routes the interact press
+/// to OnInteract() when this is the currently-selected interactable.
 /// </summary>
 [RequireComponent(typeof(MotorcycleController))]
-public class MotorcycleInteraction : MonoBehaviour
+public class MotorcycleInteraction : MonoBehaviour, IInteractable
 {
     [Header("References")]
-    [SerializeField] private InputReader inputReader;
     [SerializeField] private MotorcycleController motorcycleController;
     [Tooltip("Where the player is placed when mounting (parent transform).")]
     [SerializeField] private Transform seatPosition;
@@ -19,10 +19,15 @@ public class MotorcycleInteraction : MonoBehaviour
     [SerializeField] private Transform dismountPosition;
 
     [Header("Proximity")]
-    [SerializeField] private float interactRange = 3f;
+    [SerializeField] private float interactRange = 2f;
+
+    [Header("Priority")]
+    [Tooltip("Priority when player is on foot and able to mount.")]
+    [SerializeField] private int mountPriority = 10;
+    [Tooltip("Priority when player is mounted on this bike. Typically very high so dismount always wins.")]
+    [SerializeField] private int dismountPriority = 100;
 
     private Transform _player;
-    private bool _playerInRange;
     private bool _isRegistered;
 
     private void Awake()
@@ -33,7 +38,6 @@ public class MotorcycleInteraction : MonoBehaviour
 
     private void Start()
     {
-        // Cache player reference once.
         GameObject playerGO = GameObject.FindWithTag("Player");
         if (playerGO == null)
         {
@@ -48,21 +52,12 @@ public class MotorcycleInteraction : MonoBehaviour
             motorcycleController.enabled = false;
     }
 
-    private void OnEnable()
-    {
-        if (inputReader != null)
-            inputReader.InteractPressed += OnInteractPressed;
-    }
-
     private void OnDisable()
     {
-        if (inputReader != null)
-            inputReader.InteractPressed -= OnInteractPressed;
-
-        // Safety: unregister prompt if this script is disabled mid-proximity.
-        if (_isRegistered && UIManager.Instance != null)
+        // Always ensure we unregister on disable.
+        if (_isRegistered && InteractionManager.Instance != null)
         {
-            UIManager.Instance.UnregisterVehicleInteractable();
+            InteractionManager.Instance.Unregister(this);
             _isRegistered = false;
         }
     }
@@ -70,57 +65,86 @@ public class MotorcycleInteraction : MonoBehaviour
     private void Update()
     {
         if (_player == null) return;
-        if (UIManager.Instance == null) return;
-        if (PlayerStateManager.Instance == null) return;
+        if (InteractionManager.Instance == null) return;
 
-        UpdateProximityPrompt();
+        UpdateRegistration();
     }
 
-    private void UpdateProximityPrompt()
+    private void UpdateRegistration()
     {
-        // While player is mounted, do not show "Mount" prompt.
-        bool playerIsOnFoot = !PlayerStateManager.Instance.IsInVehicle;
-
-        float distance = Vector3.Distance(transform.position, _player.position);
-        bool inRange = distance <= interactRange;
-        _playerInRange = inRange;
-
-        bool shouldBeRegistered = inRange && playerIsOnFoot;
+        bool shouldBeRegistered = ShouldBeRegistered();
 
         if (shouldBeRegistered && !_isRegistered)
         {
-            UIManager.Instance.RegisterVehicleInteractable();
+            InteractionManager.Instance.Register(this);
             _isRegistered = true;
         }
         else if (!shouldBeRegistered && _isRegistered)
         {
-            UIManager.Instance.UnregisterVehicleInteractable();
+            InteractionManager.Instance.Unregister(this);
             _isRegistered = false;
         }
     }
 
-    // --- Input callback ---
-
-    private void OnInteractPressed()
+    private bool ShouldBeRegistered()
     {
-        if (PlayerStateManager.Instance == null) return;
+        // If the player is mounted on THIS bike, always stay registered (for dismount).
+        if (IsPlayerMountedOnThisBike()) return true;
 
-        bool isMounted = PlayerStateManager.Instance.IsInVehicle;
-        bool mountedOnThisBike = isMounted &&
-            PlayerStateManager.Instance.CurrentVehicle == (MonoBehaviour)motorcycleController;
+        // If the player is mounted on a DIFFERENT bike, we're not relevant.
+        if (PlayerStateManager.Instance != null && PlayerStateManager.Instance.IsInVehicle)
+            return false;
 
-        if (!isMounted && _playerInRange)
-        {
-            TryMount();
-        }
-        else if (mountedOnThisBike)
-        {
-            TryDismount();
-        }
-        // Otherwise: not our bike, ignore. Another bike (or mission giver) will handle it.
+        // Otherwise, register if player is on foot and within range.
+        float distance = Vector3.Distance(transform.position, _player.position);
+        return distance <= interactRange;
     }
 
-    // --- Mount ---
+    private bool IsPlayerMountedOnThisBike()
+    {
+        if (PlayerStateManager.Instance == null) return false;
+        if (!PlayerStateManager.Instance.IsInVehicle) return false;
+        return PlayerStateManager.Instance.CurrentVehicle == (MonoBehaviour)motorcycleController;
+    }
+
+    // --- IInteractable implementation ---
+
+    public int Priority =>
+        IsPlayerMountedOnThisBike() ? dismountPriority : mountPriority;
+
+    public Vector3 GetPosition() => transform.position;
+
+    public string GetPromptText() => "Mount";
+    
+    // Hide prompt while mounted — the dismount action is learned-by-symmetry.
+    // Press E to mount, press E to dismount, no persistent reminder needed.
+    public bool ShouldShowPrompt() => !IsPlayerMountedOnThisBike();
+
+    public bool CanInteract()
+    {
+        if (PlayerStateManager.Instance == null) return false;
+
+        // Can always dismount if mounted on this bike.
+        if (IsPlayerMountedOnThisBike()) return true;
+
+        // Can mount only if player is on foot and references are valid.
+        if (PlayerStateManager.Instance.IsInVehicle) return false;
+        if (seatPosition == null) return false;
+
+        return true;
+    }
+
+    public void OnInteract()
+    {
+        if (!CanInteract()) return;
+
+        if (IsPlayerMountedOnThisBike())
+            TryDismount();
+        else
+            TryMount();
+    }
+
+    // --- Mount / Dismount ---
 
     private void TryMount()
     {
@@ -130,24 +154,12 @@ public class MotorcycleInteraction : MonoBehaviour
             return;
         }
 
-        // 1. Unregister the prompt FIRST so it doesn't flicker during the state change.
-        if (_isRegistered)
-        {
-            UIManager.Instance.UnregisterVehicleInteractable();
-            _isRegistered = false;
-        }
-
-        // 2. Tell PlayerStateManager to enter the vehicle. It handles:
-        //    - Disabling PlayerController + CharacterController
-        //    - Parenting player to seat
-        //    - Firing OnStateChanged event
+        // Tell PlayerStateManager to enter the vehicle.
         PlayerStateManager.Instance.EnterVehicle(motorcycleController, seatPosition);
 
-        // 3. Enable the motorcycle controller so the bike responds to input.
+        // Enable the motorcycle controller so the bike responds to input.
         motorcycleController.enabled = true;
     }
-
-    // --- Dismount ---
 
     private void TryDismount()
     {
@@ -157,14 +169,10 @@ public class MotorcycleInteraction : MonoBehaviour
             return;
         }
 
-        // 1. Disable the motorcycle controller so the bike stops responding to input.
+        // Disable the motorcycle controller so the bike stops responding to input.
         motorcycleController.enabled = false;
 
-        // 2. Tell PlayerStateManager to exit the vehicle. It handles:
-        //    - Unparenting player
-        //    - Moving player to dismount position
-        //    - Re-enabling CharacterController + PlayerController
-        //    - Firing OnStateChanged event
+        // Tell PlayerStateManager to exit the vehicle.
         PlayerStateManager.Instance.ExitVehicle(dismountPosition);
     }
 

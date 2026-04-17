@@ -59,7 +59,6 @@ public class PlayerStateManager : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning($"[PlayerStateManager] Duplicate instance on {name}. Destroying this one.");
             Destroy(this);
             return;
         }
@@ -71,11 +70,6 @@ public class PlayerStateManager : MonoBehaviour
 
         if (characterController == null)
             characterController = GetComponent<CharacterController>();
-
-        if (playerController == null)
-            Debug.LogError($"[PlayerStateManager] PlayerController reference missing on {name}.");
-        if (characterController == null)
-            Debug.LogError($"[PlayerStateManager] CharacterController reference missing on {name}.");
     }
 
     private void OnDestroy()
@@ -92,15 +86,15 @@ public class PlayerStateManager : MonoBehaviour
     /// <param name="seatPosition">Where the player should be parented to.</param>
     public void EnterVehicle(MonoBehaviour vehicle, Transform seatPosition)
     {
+        Debug.Log($"[PSM] EnterVehicle called. frame={Time.frameCount}");
+
         if (currentState == PlayerState.InVehicle)
         {
-            Debug.LogWarning("[PlayerStateManager] EnterVehicle called but player already in a vehicle. Ignoring.");
             return;
         }
 
         if (vehicle == null || seatPosition == null)
         {
-            Debug.LogError("[PlayerStateManager] EnterVehicle called with null vehicle or seat position.");
             return;
         }
 
@@ -125,15 +119,15 @@ public class PlayerStateManager : MonoBehaviour
     /// <param name="dismountPosition">Where the player should be placed on exit.</param>
     public void ExitVehicle(Transform dismountPosition)
     {
+        Debug.Log($"[PSM] ExitVehicle called. frame={Time.frameCount}");
+
         if (currentState == PlayerState.OnFoot)
         {
-            Debug.LogWarning("[PlayerStateManager] ExitVehicle called but player already on foot. Ignoring.");
             return;
         }
 
         if (dismountPosition == null)
         {
-            Debug.LogError("[PlayerStateManager] ExitVehicle called with null dismount position.");
             return;
         }
 
@@ -158,6 +152,7 @@ public class PlayerStateManager : MonoBehaviour
     private void SetState(PlayerState newState)
     {
         if (currentState == newState) return;
+        Debug.Log($"[PSM] State changing from {currentState} to {newState}, frame={Time.frameCount}");
         currentState = newState;
         _lastStateChangeTime = Time.time;
         OnStateChanged?.Invoke(currentState);
