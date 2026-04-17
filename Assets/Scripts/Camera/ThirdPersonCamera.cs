@@ -21,6 +21,7 @@ public class ThirdPersonCamera : MonoBehaviour
     private float _yaw;
     private float _pitch;
     private Vector3 _smoothVelocity;
+    private bool _inputEnabled = true;
 
     private void LateUpdate()
     {
@@ -30,6 +31,8 @@ public class ThirdPersonCamera : MonoBehaviour
 
     private void HandleRotation()
     {
+        if (!_inputEnabled) return;
+        
         Vector2 lookInput = inputReader.LookInput;
 
         _yaw += lookInput.x * rotationSpeed * Time.deltaTime;
@@ -39,6 +42,8 @@ public class ThirdPersonCamera : MonoBehaviour
 
     private void HandlePosition()
     {
+        if (!_inputEnabled) return;
+
         Quaternion rotation = Quaternion.Euler(_pitch, _yaw, 0f);
 
         Vector3 targetPosition = target.position + Vector3.up * followHeight;
@@ -58,5 +63,18 @@ public class ThirdPersonCamera : MonoBehaviour
     public Quaternion GetCameraRotation()
     {
         return Quaternion.Euler(0f, _yaw, 0f);
+    }
+
+    public void SetInputEnabled(bool enabled)
+    {
+        _inputEnabled = enabled;
+    }
+
+    public void ConsumeAccumulatedInput()
+    {
+        // Reset any pending look input so closing the map doesn't cause a snap
+        // We do this by reading and discarding the current mouse delta
+        if (inputReader != null)
+            inputReader.ResetLookInput();
     }
 }

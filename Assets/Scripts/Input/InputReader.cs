@@ -45,4 +45,20 @@ public class InputReader : ScriptableObject, PlayerInputActions.IPlayerActions
     {
         InteractInput = context.ReadValueAsButton();
     }
+
+    public void SetInputEnabled(bool enabled)
+    {
+        if (enabled)
+        {
+            LookInput = Vector2.zero;
+            _inputActions.Player.Enable();
+        }
+        else
+            _inputActions.Player.Disable();
+    }
+
+    public void ResetLookInput()
+    {
+        LookInput = Vector2.zero;
+    }
 }

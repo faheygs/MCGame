@@ -61,6 +61,8 @@ public class MissionManager : MonoBehaviour
 
         SpawnObjective(mission);
         HUDManager.Instance?.OnMissionStarted(mission);
+
+        WaypointManager.Instance.SetWaypoint(mission.objectivePosition);
     }
 
     public void CompleteMission()
@@ -86,6 +88,7 @@ public class MissionManager : MonoBehaviour
         }
 
         DespawnObjective();
+        WaypointManager.Instance.ClearWaypoint();
         HUDManager.Instance?.OnMissionCompleted(_currentMission);
 
         _currentMission = null;
@@ -98,6 +101,7 @@ public class MissionManager : MonoBehaviour
         _missionStates[_currentMission.missionName] = MissionState.Failed;
 
         DespawnObjective();
+        WaypointManager.Instance.ClearWaypoint();
         HUDManager.Instance?.OnMissionFailed(_currentMission);
 
         _currentMission = null;

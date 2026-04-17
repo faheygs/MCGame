@@ -8,9 +8,12 @@ public class MinimapCamera : MonoBehaviour
 {
     [SerializeField] private Transform target;
     [SerializeField] private float height = 50f;
+    private bool _inputEnabled = true;
 
     private void LateUpdate()
     {
+        if (!_inputEnabled) return;
+        
         if (target == null) return;
 
         // Follow player position
@@ -23,5 +26,10 @@ public class MinimapCamera : MonoBehaviour
         ThirdPersonCamera cam = Camera.main.GetComponent<ThirdPersonCamera>();
         if (cam != null)
             transform.rotation = Quaternion.Euler(90f, cam.GetCameraRotation().eulerAngles.y, 0f);
+    }
+
+    public void SetInputEnabled(bool enabled)
+    {
+        _inputEnabled = enabled;
     }
 }

@@ -3,11 +3,6 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Collections;
 
-/// <summary>
-/// Manages all minimap markers as UI elements overlaid on the minimap.
-/// Converts world positions to minimap-local positions each frame.
-/// When a marker is outside the minimap radius it clamps to the circle edge.
-/// </summary>
 public class MinimapMarkerManager : MonoBehaviour
 {
     public static MinimapMarkerManager Instance { get; private set; }
@@ -24,33 +19,34 @@ public class MinimapMarkerManager : MonoBehaviour
     [SerializeField] private Sprite waypointSprite;
     [SerializeField] private Sprite missionSprite;
     [SerializeField] private Sprite objectiveSprite;
+    [SerializeField] private Sprite outlineSprite;
 
     [Header("Marker Sizes")]
     [SerializeField] private float playerMarkerSize = 24f;
     [SerializeField] private float waypointMarkerSize = 20f;
     [SerializeField] private float missionMarkerSize = 18f;
     [SerializeField] private float objectiveMarkerSize = 20f;
+    [SerializeField] private float highlightSize = 26f;
 
     [Header("Colors")]
     [SerializeField] private Color playerColor = Color.white;
-    [SerializeField] private Color objectiveColor = Color.white;
     [SerializeField] private Color waypointColor = new Color(0.831f, 0.388f, 0.102f);
     [SerializeField] private Color missionColor = new Color(0.941f, 0.753f, 0.251f);
+    [SerializeField] private Color objectiveColor = Color.white;
 
-    // Found at runtime — not serialized to avoid cross-object reference dropping
     private RectTransform _minimapMask;
     private RectTransform _markerContainer;
     private float _mapRadius;
     private bool _isReady = false;
     public bool IsReady => _isReady;
 
-    // ---------------------------------------------------------------
-    // Internal marker data
-    // ---------------------------------------------------------------
+    private bool _rotationFrozen = false;
+    private float _frozenCamYRot = 0f;
 
     private class MarkerData
     {
         public RectTransform icon;
+        public RectTransform highlight;
         public System.Func<Vector3> getWorldPos;
         public bool clampToEdge;
         public bool visible = true;
@@ -59,10 +55,6 @@ public class MinimapMarkerManager : MonoBehaviour
     private MarkerData _playerMarker;
     private MarkerData _waypointMarker;
     private readonly List<MarkerData> _missionMarkers = new();
-
-    // ---------------------------------------------------------------
-    // Lifecycle
-    // ---------------------------------------------------------------
 
     private void Awake()
     {
@@ -77,13 +69,12 @@ public class MinimapMarkerManager : MonoBehaviour
 
     private IEnumerator Start()
     {
-        // Find ThirdPersonCamera if not assigned
         if (thirdPersonCamera == null)
             thirdPersonCamera = Camera.main.GetComponent<ThirdPersonCamera>();
 
         if (thirdPersonCamera == null)
         {
-            Debug.LogError("MinimapMarkerManager: Could not find ThirdPersonCamera on Main Camera.");
+            Debug.LogError("MinimapMarkerManager: Could not find ThirdPersonCamera.");
             yield break;
         }
 
@@ -92,13 +83,13 @@ public class MinimapMarkerManager : MonoBehaviour
 
         if (maskObj == null)
         {
-            Debug.LogError("MinimapMarkerManager: Could not find 'MinimapMask' in scene.");
+            Debug.LogError("MinimapMarkerManager: Could not find 'MinimapMask'.");
             yield break;
         }
 
         if (containerObj == null)
         {
-            Debug.LogError("MinimapMarkerManager: Could not find 'MinimapMarkerContainer' in scene.");
+            Debug.LogError("MinimapMarkerManager: Could not find 'MinimapMarkerContainer'.");
             yield break;
         }
 
@@ -116,21 +107,26 @@ public class MinimapMarkerManager : MonoBehaviour
         }
 
         CreatePlayerMarker();
+
+        // Pre-create waypoint marker so it exists before any mission registers
+        _waypointMarker = new MarkerData
+        {
+            icon = CreateIconObject("Marker_Waypoint", waypointSprite, waypointMarkerSize, waypointColor),
+            getWorldPos = () => WaypointManager.Instance != null
+                ? WaypointManager.Instance.WaypointPosition
+                : Vector3.zero,
+            clampToEdge = true,
+            visible = false
+        };
+        _waypointMarker.icon.gameObject.SetActive(false);
+
         _isReady = true;
-    }
 
-    private void OnEnable()
-    {
-        if (WaypointManager.Instance == null) return;
-        WaypointManager.Instance.OnWaypointSet += OnWaypointSet;
-        WaypointManager.Instance.OnWaypointCleared += OnWaypointCleared;
-    }
-
-    private void OnDisable()
-    {
-        if (WaypointManager.Instance == null) return;
-        WaypointManager.Instance.OnWaypointSet -= OnWaypointSet;
-        WaypointManager.Instance.OnWaypointCleared -= OnWaypointCleared;
+        if (WaypointManager.Instance != null)
+        {
+            WaypointManager.Instance.OnWaypointSet += OnWaypointSet;
+            WaypointManager.Instance.OnWaypointCleared += OnWaypointCleared;
+        }
     }
 
     private void CacheMapRadius()
@@ -141,9 +137,12 @@ public class MinimapMarkerManager : MonoBehaviour
         _mapRadius = Mathf.Min(w, h) * 0.5f;
     }
 
-    // ---------------------------------------------------------------
-    // Marker creation
-    // ---------------------------------------------------------------
+    public void FreezeRotation(bool freeze)
+    {
+        _rotationFrozen = freeze;
+        if (freeze)
+            _frozenCamYRot = thirdPersonCamera.GetCameraRotation().eulerAngles.y;
+    }
 
     private void CreatePlayerMarker()
     {
@@ -157,9 +156,17 @@ public class MinimapMarkerManager : MonoBehaviour
 
     public int RegisterMissionMarker(System.Func<Vector3> getWorldPos)
     {
+        // Create highlight first — lower sibling index = renders behind
+        RectTransform highlight = CreateIconObject("Highlight_Mission", outlineSprite, highlightSize, waypointColor);
+        highlight.gameObject.SetActive(false);
+
+        // Create icon after — higher sibling index = renders on top
+        RectTransform icon = CreateIconObject("Marker_Mission", missionSprite, missionMarkerSize, missionColor);
+
         MarkerData data = new MarkerData
         {
-            icon = CreateIconObject("Marker_Mission", missionSprite, missionMarkerSize, missionColor),
+            icon = icon,
+            highlight = highlight,
             getWorldPos = getWorldPos,
             clampToEdge = true
         };
@@ -186,6 +193,7 @@ public class MinimapMarkerManager : MonoBehaviour
         if (id < 0 || id >= _missionMarkers.Count) return;
         MarkerData data = _missionMarkers[id];
         if (data?.icon != null) Destroy(data.icon.gameObject);
+        if (data?.highlight != null) Destroy(data.highlight.gameObject);
         _missionMarkers[id] = null;
     }
 
@@ -196,22 +204,21 @@ public class MinimapMarkerManager : MonoBehaviour
         if (data == null) return;
         data.visible = visible;
         data.icon?.gameObject.SetActive(visible);
+        if (!visible && data.highlight != null)
+            data.highlight.gameObject.SetActive(false);
+    }
+
+    public void SetMissionMarkerHighlighted(int id, bool highlighted)
+    {
+        if (id < 0 || id >= _missionMarkers.Count) return;
+        MarkerData data = _missionMarkers[id];
+        if (data == null) return;
+        data.highlight?.gameObject.SetActive(highlighted);
     }
 
     private void OnWaypointSet(Vector3 worldPos)
     {
-        if (_waypointMarker == null)
-        {
-            _waypointMarker = new MarkerData
-            {
-                icon = CreateIconObject("Marker_Waypoint", waypointSprite, waypointMarkerSize, waypointColor),
-                getWorldPos = () => WaypointManager.Instance != null
-                    ? WaypointManager.Instance.WaypointPosition
-                    : Vector3.zero,
-                clampToEdge = true
-            };
-        }
-
+        if (_waypointMarker == null) return;
         _waypointMarker.visible = true;
         _waypointMarker.icon.gameObject.SetActive(true);
     }
@@ -249,10 +256,6 @@ public class MinimapMarkerManager : MonoBehaviour
         return rt;
     }
 
-    // ---------------------------------------------------------------
-    // Update
-    // ---------------------------------------------------------------
-
     private void LateUpdate()
     {
         if (!_isReady) return;
@@ -275,21 +278,21 @@ public class MinimapMarkerManager : MonoBehaviour
         if (marker?.icon == null) return;
 
         Vector2 mapPos = WorldToMinimapPosition(marker.getWorldPos());
-
-        // Temporary debug
-        if (marker != _playerMarker && marker.visible)
-            Debug.Log($"WorldPos: {marker.getWorldPos()} | MapPos: {mapPos} | Radius: {_mapRadius}");
-
         float distFromCenter = mapPos.magnitude;
 
         if (distFromCenter <= _mapRadius)
         {
             marker.icon.anchoredPosition = mapPos;
+            if (marker.highlight != null && marker.highlight.gameObject.activeSelf)
+                marker.highlight.anchoredPosition = mapPos;
         }
         else if (marker.clampToEdge)
         {
             float padding = marker.icon.sizeDelta.x * 0.5f + 2f;
-            marker.icon.anchoredPosition = mapPos.normalized * (_mapRadius - padding);
+            Vector2 clampedPos = mapPos.normalized * (_mapRadius - padding);
+            marker.icon.anchoredPosition = clampedPos;
+            if (marker.highlight != null && marker.highlight.gameObject.activeSelf)
+                marker.highlight.anchoredPosition = clampedPos;
         }
         else
         {
@@ -301,12 +304,14 @@ public class MinimapMarkerManager : MonoBehaviour
     {
         Vector3 worldOffset = worldPos - playerTransform.position;
 
-        float camYRot = thirdPersonCamera.GetCameraRotation().eulerAngles.y;
+        float camYRot = _rotationFrozen
+            ? _frozenCamYRot
+            : thirdPersonCamera.GetCameraRotation().eulerAngles.y;
+
         float rad = camYRot * Mathf.Deg2Rad;
         float cos = Mathf.Cos(rad);
         float sin = Mathf.Sin(rad);
 
-        // Using same rotation as MinimapCamera
         float rotatedX = worldOffset.x * cos - worldOffset.z * sin;
         float rotatedZ = worldOffset.x * sin + worldOffset.z * cos;
 

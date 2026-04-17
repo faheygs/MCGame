@@ -17,6 +17,8 @@ public class MissionGiver : MonoBehaviour
     private bool _playerInRange;
     private bool _isRegistered;
     private int _minimapMarkerId = -1;
+    public int MinimapMarkerId => _minimapMarkerId;
+    public MissionData MissionData => missionToGive;
 
     private IEnumerator Start()
     {

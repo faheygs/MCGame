@@ -8,8 +8,10 @@ using System;
 /// </summary>
 public class WaypointManager : MonoBehaviour
 {
-    public static WaypointManager Instance { get; private set; }
+    [SerializeField] private Transform playerTransform;
+    [SerializeField] private float arrivalRadius = 5f;
 
+    public static WaypointManager Instance { get; private set; }
     public Vector3 WaypointPosition { get; private set; }
     public bool HasWaypoint { get; private set; }
 
@@ -24,6 +26,20 @@ public class WaypointManager : MonoBehaviour
             return;
         }
         Instance = this;
+    }
+
+    private void Update()
+    {
+        if (!HasWaypoint) return;
+        if (playerTransform == null) return;
+
+        float distance = Vector3.Distance(
+            new Vector3(playerTransform.position.x, 0f, playerTransform.position.z),
+            WaypointPosition
+        );
+
+        if (distance <= arrivalRadius)
+            ClearWaypoint();
     }
 
     public void SetWaypoint(Vector3 worldPosition)

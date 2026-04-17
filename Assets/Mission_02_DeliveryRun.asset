@@ -17,7 +17,7 @@ MonoBehaviour:
   initialState: 0
   objectivePosition: {x: -30, y: 0, z: -30}
   objectiveRadius: 3
-  giverPosition: {x: 0, y: 0, z: 0}
+  giverPosition: {x: -5, y: 0, z: -5}
   moneyReward: 750
   reputationReward: 15
   missionsToUnlockOnComplete: []
