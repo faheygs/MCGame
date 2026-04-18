@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5800705810598617660}
   - component: {fileID: 5342168891083543931}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: MissionGiver
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -60,7 +60,7 @@ GameObject:
   - component: {fileID: 1068552970123165702}
   - component: {fileID: 2537925953199275713}
   - component: {fileID: 1607059994139295539}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Marker
   m_TagString: Untagged
   m_Icon: {fileID: 0}

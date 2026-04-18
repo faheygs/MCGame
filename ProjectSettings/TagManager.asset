@@ -3,7 +3,13 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - Vehicle
+  - NPCSpawn
+  - MissionGiver
+  - RoadNode
+  - DistrictBoundary
+  - TriggerVolumn
   layers:
   - Default
   - TransparentFX
@@ -11,16 +17,16 @@ TagManager:
   - 
   - Water
   - UI
+  - 
+  - 
+  - Ground
+  - Road
+  - Building
+  - Interactable
+  - Vehicle
+  - NPC
+  - Trigger
   - Minimap
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
   - 
   - 
   - 
