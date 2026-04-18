@@ -57,6 +57,8 @@ public class District : MonoBehaviour
 
     private void OnEnable()
     {
+        // DistrictManager may not exist yet on scene load (script execution order).
+        // If it doesn't exist, DistrictManager.Start() will auto-discover us via DiscoverAllDistricts().
         if (DistrictManager.Instance != null)
             DistrictManager.Instance.RegisterDistrict(this);
     }

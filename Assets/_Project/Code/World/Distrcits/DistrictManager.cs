@@ -15,6 +15,10 @@ public class DistrictManager : MonoBehaviour
 
     private readonly List<District> _registeredDistricts = new List<District>();
 
+    [Header("Auto-Discovery")]
+    [Tooltip("If true, scans the scene for all District components on Start. Districts created at runtime still register via OnEnable.")]
+    [SerializeField] private bool autoDiscoverOnStart = true;
+
     [Header("Player Tracking")]
     [SerializeField] private float playerCheckInterval = 0.25f;
 
@@ -51,9 +55,25 @@ public class DistrictManager : MonoBehaviour
 
     private void Start()
     {
+        if (autoDiscoverOnStart)
+            DiscoverAllDistricts();
+
         GameObject playerGO = GameObject.FindWithTag("Player");
         if (playerGO != null)
             _player = playerGO.transform;
+        else
+            Debug.LogError("[DistrictManager] No GameObject tagged 'Player' found in scene.");
+    }
+
+    /// <summary>
+    /// Scan the scene for all District components and register them.
+    /// Called on Start by default, or manually if needed.
+    /// </summary>
+    public void DiscoverAllDistricts()
+    {
+        District[] found = FindObjectsByType<District>(FindObjectsInactive.Exclude);
+        for (int i = 0; i < found.Length; i++)
+            RegisterDistrict(found[i]);
     }
 
     private void Update()
@@ -70,7 +90,6 @@ public class DistrictManager : MonoBehaviour
         District found = null;
         Vector3 playerPos = _player.position;
 
-        // Iterate districts, find the one containing the player
         for (int i = 0; i < _registeredDistricts.Count; i++)
         {
             District d = _registeredDistricts[i];
