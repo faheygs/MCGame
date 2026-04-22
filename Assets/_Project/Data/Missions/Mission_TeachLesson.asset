@@ -10,22 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1aa0d71d7f588f743a6e53c4f5548652, type: 3}
-  m_Name: Mission_BankDeposit
+  m_Name: Mission_TeachLesson
   m_EditorClassIdentifier: Assembly-CSharp::MissionData
-  missionName: Bank Deposit
-  briefingText: The club needs $50 deposited at the bank. Ride over and make the
-    drop.
+  missionName: Teach Him a Lesson
+  briefingText: Some guy near the Vault has been running his mouth about the club.
+    Go shut him up.
   giverName: Carl
   initialState: 0
-  objectiveType: 1
-  objectivePromptText: Deposit Cash
-  objectivePosition: {x: 15, y: 0, z: 80}
-  objectiveRadius: 5
-  enemyPrefab: {fileID: 0}
+  objectiveType: 2
+  objectivePromptText: Interact
+  objectivePosition: {x: 5, y: 0, z: 140}
+  objectiveRadius: 15
+  enemyPrefab: {fileID: 3658341076048335131, guid: 4ce1b5a0e2e094a4fadfebb54b6a25cc, type: 3}
   enemyCount: 1
-  moneyReward: 200
-  reputationReward: 25
-  moneyCost: 50
-  missionsToUnlockOnComplete:
-  - {fileID: 11400000, guid: 22592571654a2bc41b47750dfac8cf93, type: 2}
+  moneyReward: 750
+  reputationReward: 75
+  moneyCost: 0
+  missionsToUnlockOnComplete: []
   unlockDelay: 30

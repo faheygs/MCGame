@@ -1,12 +1,15 @@
 using UnityEngine;
+using System.Collections.Generic;
 
-// MissionObjective is spawned dynamically by MissionManager when a mission starts.
-// It registers itself as a minimap marker on spawn and cleans up on destroy.
-//
-// Supports two objective types:
-// - GoToLocation: auto-completes when the player enters the radius (existing behavior)
-// - Interact: player must press E on the objective to complete it (implements IInteractable)
-
+/// <summary>
+/// MissionObjective is spawned dynamically by MissionManager when a mission starts.
+/// It registers itself as a minimap marker on spawn and cleans up on destroy.
+///
+/// Supports three objective types:
+/// - GoToLocation: auto-completes when the player enters the radius.
+/// - Interact: player must press E on the objective to complete it.
+/// - DefeatTarget: spawns enemies, completes when all are defeated.
+/// </summary>
 public class MissionObjective : MonoBehaviour, IInteractable
 {
     private float _triggerRadius = 3f;
@@ -15,6 +18,11 @@ public class MissionObjective : MonoBehaviour, IInteractable
     private Transform _player;
     private int _minimapMarkerId = -1;
     private bool _isRegistered;
+
+    // DefeatTarget tracking
+    private List<EnemyAI> _spawnedEnemies = new();
+    private int _enemiesDefeated;
+    private int _totalEnemies;
 
     /// <summary>
     /// Called by MissionManager immediately after Instantiate.
@@ -25,9 +33,11 @@ public class MissionObjective : MonoBehaviour, IInteractable
         _triggerRadius = mission.objectiveRadius;
         _type = mission.objectiveType;
         _promptText = mission.objectivePromptText;
+
+        if (_type == ObjectiveType.DefeatTarget)
+            SpawnEnemies(mission);
     }
 
-    // Legacy support — if SetRadius is called directly, treat as GoToLocation
     public void SetRadius(float radius)
     {
         _triggerRadius = radius;
@@ -51,33 +61,95 @@ public class MissionObjective : MonoBehaviour, IInteractable
 
         float distance = Vector3.Distance(transform.position, _player.position);
 
-        if (_type == ObjectiveType.GoToLocation)
+        switch (_type)
         {
-            // Auto-complete on proximity
-            if (distance <= _triggerRadius)
-            {
-                MissionManager.Instance.CompleteMission();
-            }
-        }
-        else if (_type == ObjectiveType.Interact)
-        {
-            // Register/unregister with InteractionManager based on proximity
-            bool shouldRegister = distance <= _triggerRadius &&
-                                  PlayerStateManager.Instance != null &&
-                                  !PlayerStateManager.Instance.IsInVehicle;
+            case ObjectiveType.GoToLocation:
+                if (distance <= _triggerRadius)
+                    MissionManager.Instance.CompleteMission();
+                break;
 
-            if (shouldRegister && !_isRegistered)
-            {
-                InteractionManager.Instance?.Register(this);
-                _isRegistered = true;
-            }
-            else if (!shouldRegister && _isRegistered)
-            {
-                InteractionManager.Instance?.Unregister(this);
-                _isRegistered = false;
-            }
+            case ObjectiveType.Interact:
+                HandleInteractProximity(distance);
+                break;
+
+            case ObjectiveType.DefeatTarget:
+                // Completion is handled by enemy death callbacks
+                // Update HUD with remaining count
+                break;
         }
     }
+
+    // --- Interact Type ---
+
+    private void HandleInteractProximity(float distance)
+    {
+        bool shouldRegister = distance <= _triggerRadius &&
+                              PlayerStateManager.Instance != null &&
+                              !PlayerStateManager.Instance.IsInVehicle;
+
+        if (shouldRegister && !_isRegistered)
+        {
+            InteractionManager.Instance?.Register(this);
+            _isRegistered = true;
+        }
+        else if (!shouldRegister && _isRegistered)
+        {
+            InteractionManager.Instance?.Unregister(this);
+            _isRegistered = false;
+        }
+    }
+
+    // --- DefeatTarget Type ---
+
+    private void SpawnEnemies(MissionData mission)
+    {
+        if (mission.enemyPrefab == null)
+        {
+            Debug.LogError("[MissionObjective] DefeatTarget mission has no enemy prefab assigned.");
+            return;
+        }
+
+        _totalEnemies = mission.enemyCount;
+        _enemiesDefeated = 0;
+
+        for (int i = 0; i < mission.enemyCount; i++)
+        {
+            // Spread enemies in a circle around the objective position
+            float angle = (360f / mission.enemyCount) * i;
+            Vector3 offset = Quaternion.Euler(0, angle, 0) * Vector3.forward * 3f;
+            Vector3 spawnPos = transform.position + offset;
+
+            GameObject enemyGO = Instantiate(mission.enemyPrefab, spawnPos, Quaternion.identity);
+            EnemyAI enemy = enemyGO.GetComponent<EnemyAI>();
+
+            if (enemy != null)
+            {
+                _spawnedEnemies.Add(enemy);
+                enemy.OnDefeated += HandleEnemyDefeated;
+            }
+        }
+
+        // Update HUD with objective text
+        HUDManager.Instance?.OnMissionObjectiveUpdated($"Defeat target (0/{_totalEnemies})");
+    }
+
+    private void HandleEnemyDefeated()
+    {
+        _enemiesDefeated++;
+
+        // Update HUD
+        HUDManager.Instance?.OnMissionObjectiveUpdated(
+            $"Defeat target ({_enemiesDefeated}/{_totalEnemies})"
+        );
+
+        // Check if all enemies are down
+        if (_enemiesDefeated >= _totalEnemies)
+        {
+            MissionManager.Instance?.CompleteMission();
+        }
+    }
+
+    // --- Cleanup ---
 
     private void OnDestroy()
     {
@@ -94,16 +166,20 @@ public class MissionObjective : MonoBehaviour, IInteractable
             InteractionManager.Instance.Unregister(this);
             _isRegistered = false;
         }
+
+        // Clean up enemy event subscriptions
+        foreach (EnemyAI enemy in _spawnedEnemies)
+        {
+            if (enemy != null)
+                enemy.OnDefeated -= HandleEnemyDefeated;
+        }
     }
 
-    // --- IInteractable implementation (only used for Interact type) ---
+    // --- IInteractable implementation (Interact type only) ---
 
-    public int Priority => 15; // Higher than mission giver (5), higher than mount (10)
-
+    public int Priority => 15;
     public Vector3 GetPosition() => transform.position;
-
     public string GetPromptText() => _promptText;
-
     public bool ShouldShowPrompt() => true;
 
     public bool CanInteract()
@@ -122,7 +198,8 @@ public class MissionObjective : MonoBehaviour, IInteractable
 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = _type == ObjectiveType.GoToLocation ? Color.green : Color.cyan;
+        Gizmos.color = _type == ObjectiveType.GoToLocation ? Color.green :
+                       _type == ObjectiveType.Interact ? Color.cyan : Color.red;
         Gizmos.DrawWireSphere(transform.position, _triggerRadius);
     }
 }

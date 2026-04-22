@@ -21,6 +21,12 @@ public class MissionData : ScriptableObject
     public Vector3 objectivePosition;
     public float objectiveRadius = 3f;
 
+    [Header("Combat (DefeatTarget only)")]
+    [Tooltip("Enemy prefab to spawn for DefeatTarget objectives")]
+    public GameObject enemyPrefab;
+    [Tooltip("Number of enemies to spawn")]
+    public int enemyCount = 1;
+
     [Header("Rewards")]
     public int moneyReward;
     public int reputationReward;

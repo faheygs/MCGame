@@ -9,10 +9,10 @@ public class InputReader : ScriptableObject, PlayerInputActions.IPlayerActions
     public bool SprintInput { get; private set; }
     public bool InteractInput { get; private set; }
 
-    // Fires exactly once when Interact is pressed (rising edge).
-    // Use this for one-shot actions like mount/dismount vehicle, open door, pick up item.
-    // For continuous "is button currently held" checks, use InteractInput bool instead.
+    // One-shot events — fire once on button press (rising edge)
     public event System.Action InteractPressed;
+    public event System.Action LightAttackPressed;
+    public event System.Action HeavyAttackPressed;
 
     private PlayerInputActions _inputActions;
 
@@ -50,10 +50,20 @@ public class InputReader : ScriptableObject, PlayerInputActions.IPlayerActions
     {
         InteractInput = context.ReadValueAsButton();
 
-        // Fire event only on the press frame (rising edge).
-        // context.performed triggers once when the button goes from unpressed to pressed.
         if (context.performed)
             InteractPressed?.Invoke();
+    }
+
+    public void OnLightAttack(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+            LightAttackPressed?.Invoke();
+    }
+
+    public void OnHeavyAttack(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+            HeavyAttackPressed?.Invoke();
     }
 
     public void SetInputEnabled(bool enabled)
