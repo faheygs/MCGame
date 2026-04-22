@@ -10,15 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1aa0d71d7f588f743a6e53c4f5548652, type: 3}
-  m_Name: Mission_01_CollectDebt
+  m_Name: Mission_RideToVault
   m_EditorClassIdentifier: Assembly-CSharp::MissionData
-  missionName: Collect the Debt
-  briefingText: Big Dave owes the club money. Go collect it.
+  missionName: Meet at the Vault
+  briefingText: Ride to The Vault and check in with the crew
+  giverName: Carl
   initialState: 1
-  objectivePosition: {x: 30, y: 0, z: 30}
-  objectiveRadius: 3
-  giverPosition: {x: 5, y: 0, z: 5}
+  objectiveType: 0
+  objectivePromptText: Interact
+  objectivePosition: {x: 0, y: 0, z: 145}
+  objectiveRadius: 5
   moneyReward: 500
-  reputationReward: 10
+  reputationReward: 50
+  moneyCost: 0
   missionsToUnlockOnComplete:
-  - {fileID: 11400000, guid: 80b37b5aa240dcd4fa13392d139825d6, type: 2}
+  - {fileID: 11400000, guid: a4ea92c0209c5474a9614fea1f190682, type: 2}
+  unlockDelay: 30

@@ -145,7 +145,8 @@ public class MinimapMarkerManager : MonoBehaviour
         _playerMarker = new MarkerData
         {
             icon = CreateIconObject("Marker_Player", playerSprite, playerMarkerSize, playerColor),
-            getWorldPos = () => playerTransform != null ? playerTransform.position : Vector3.zero,
+            getWorldPos = () => playerTransform != null ?
+                playerTransform.position : Vector3.zero,
             clampToEdge = false
         };
     }
@@ -210,6 +211,40 @@ public class MinimapMarkerManager : MonoBehaviour
         MarkerData data = _missionMarkers[id];
         if (data == null) return;
         data.highlight?.gameObject.SetActive(highlighted);
+    }
+
+    /// <summary>
+    /// Blinks a mission marker on/off a set number of times to draw the player's attention.
+    /// Called when a new mission becomes available. Marker ends in the visible (on) state.
+    /// </summary>
+    public void BlinkMissionMarker(int id, int blinkCount = 3, float blinkInterval = 0.3f)
+    {
+        if (id < 0 || id >= _missionMarkers.Count) return;
+        MarkerData data = _missionMarkers[id];
+        if (data == null) return;
+
+        // Position the marker correctly before blinking
+        UpdateMarker(data);
+
+        StartCoroutine(BlinkCoroutine(data, blinkCount, blinkInterval));
+    }
+
+    private IEnumerator BlinkCoroutine(MarkerData marker, int count, float interval)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            // Off
+            if (marker.icon != null) marker.icon.gameObject.SetActive(false);
+            yield return new WaitForSeconds(interval);
+
+            // On
+            if (marker.icon != null) marker.icon.gameObject.SetActive(true);
+            yield return new WaitForSeconds(interval);
+        }
+
+        // Ensure it ends visible
+        if (marker.icon != null) marker.icon.gameObject.SetActive(true);
+        marker.visible = true;
     }
 
     private void OnWaypointSet(Vector3 worldPos)

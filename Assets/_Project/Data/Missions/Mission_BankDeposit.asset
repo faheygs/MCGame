@@ -10,14 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1aa0d71d7f588f743a6e53c4f5548652, type: 3}
-  m_Name: Mission_02_DeliveryRun
+  m_Name: Mission_BankDeposit
   m_EditorClassIdentifier: Assembly-CSharp::MissionData
-  missionName: Delivery Run
-  briefingText: Take this package across town. Don't ask what's in it.
+  missionName: Bank Deposit
+  briefingText: The club needs $50 deposited at the bank. Ride over and make the
+    drop.
+  giverName: Carl
   initialState: 0
-  objectivePosition: {x: -30, y: 0, z: -30}
-  objectiveRadius: 3
-  giverPosition: {x: -5, y: 0, z: -5}
-  moneyReward: 750
-  reputationReward: 15
+  objectiveType: 1
+  objectivePromptText: Deposit Cash
+  objectivePosition: {x: 15, y: 0, z: 80}
+  objectiveRadius: 5
+  moneyReward: 200
+  reputationReward: 25
+  moneyCost: 50
   missionsToUnlockOnComplete: []
+  unlockDelay: 30

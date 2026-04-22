@@ -202,7 +202,6 @@ public class FullMapController : MonoBehaviour
         {
             _selectedMissionPin.highlight.gameObject.SetActive(false);
 
-            // Remove highlight on minimap
             MissionGiver giver = FindMissionGiverForPin(_selectedMissionPin);
             if (giver != null)
                 MinimapMarkerManager.Instance?.SetMissionMarkerHighlighted(giver.MinimapMarkerId, false);
@@ -230,7 +229,7 @@ public class FullMapController : MonoBehaviour
         MissionGiver[] givers = FindObjectsByType<MissionGiver>(FindObjectsInactive.Exclude);
         foreach (MissionGiver giver in givers)
         {
-            if (giver.MissionData.missionName == pin.missionName)
+            if (giver.MissionData != null && giver.MissionData.missionName == pin.missionName)
                 return giver;
         }
         return null;
@@ -238,6 +237,7 @@ public class FullMapController : MonoBehaviour
 
     private void RefreshMissionPins()
     {
+        // Clear existing pins
         foreach (MissionPin pin in _missionPins)
         {
             if (pin?.icon != null) Destroy(pin.icon.gameObject);
@@ -246,31 +246,37 @@ public class FullMapController : MonoBehaviour
         _missionPins.Clear();
         _selectedMissionPin = null;
 
-        if (MissionManager.Instance == null) return;
+        // Find all active MissionGivers in the scene that have available missions
+        MissionGiver[] givers = FindObjectsByType<MissionGiver>(FindObjectsInactive.Exclude);
 
-        List<MissionData> available = MissionManager.Instance.GetAvailableMissions();
-        foreach (MissionData mission in available)
+        foreach (MissionGiver giver in givers)
         {
+            if (!giver.HasAvailableMission()) continue;
+
+            // Use the giver's actual world position — not a field on MissionData
+            Vector3 giverWorldPos = giver.transform.position;
+            string missionName = giver.MissionData.missionName;
+
             MissionPin pin = new MissionPin
             {
-                worldPosition = mission.giverPosition,
-                missionName = mission.missionName
+                worldPosition = giverWorldPos,
+                missionName = missionName
             };
 
             // Highlight first — renders behind icon
-            pin.highlight = CreatePin("Highlight_" + mission.missionName, outlineSprite, highlightSize, highlightColor, false);
-            pin.highlight.anchoredPosition = WorldToMapPosition(mission.giverPosition);
+            pin.highlight = CreatePin("Highlight_" + missionName, outlineSprite, highlightSize, highlightColor, false);
+            pin.highlight.anchoredPosition = WorldToMapPosition(giverWorldPos);
             pin.highlight.gameObject.SetActive(false);
 
             // Icon on top
-            pin.icon = CreatePin("Pin_" + mission.missionName, missionSprite, missionMarkerSize, missionColor, true);
-            pin.icon.anchoredPosition = WorldToMapPosition(mission.giverPosition);
+            pin.icon = CreatePin("Pin_" + missionName, missionSprite, missionMarkerSize, missionColor, true);
+            pin.icon.anchoredPosition = WorldToMapPosition(giverWorldPos);
 
             // Restore highlight if previously selected
             if (WaypointManager.Instance.HasWaypoint)
             {
                 Vector3 wp = WaypointManager.Instance.WaypointPosition;
-                if (Vector3.Distance(wp, mission.giverPosition) < 1f)
+                if (Vector3.Distance(wp, giverWorldPos) < 1f)
                 {
                     _selectedMissionPin = pin;
                     pin.highlight.gameObject.SetActive(true);

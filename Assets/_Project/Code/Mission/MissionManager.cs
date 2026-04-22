@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -71,12 +72,6 @@ public class MissionManager : MonoBehaviour
 
         _missionStates[_currentMission.missionName] = MissionState.Completed;
 
-        if (_currentMission.missionsToUnlockOnComplete != null)
-        {
-            foreach (MissionData mission in _currentMission.missionsToUnlockOnComplete)
-                UnlockMission(mission);
-        }
-
         // Apply rewards
         if (playerStats != null)
         {
@@ -85,6 +80,24 @@ public class MissionManager : MonoBehaviour
 
             if (_currentMission.reputationReward > 0)
                 playerStats.AddReputation(_currentMission.reputationReward);
+        }
+
+        // Apply costs
+        if (playerStats != null && _currentMission.moneyCost > 0)
+        {
+            playerStats.AddMoney(-_currentMission.moneyCost);
+        }
+
+        // Handle unlock chain
+        if (_currentMission.missionsToUnlockOnComplete != null)
+        {
+            foreach (MissionData mission in _currentMission.missionsToUnlockOnComplete)
+            {
+                if (_currentMission.unlockDelay > 0)
+                    StartCoroutine(DelayedUnlock(mission, _currentMission.unlockDelay));
+                else
+                    UnlockMission(mission);
+            }
         }
 
         DespawnObjective();
@@ -112,7 +125,10 @@ public class MissionManager : MonoBehaviour
         if (mission == null) return;
 
         if (GetMissionState(mission) == MissionState.Locked)
+        {
             _missionStates[mission.missionName] = MissionState.Available;
+            HUDManager.Instance?.ShowToast($"New job available");
+        }
     }
 
     public MissionState GetMissionState(MissionData mission)
@@ -136,6 +152,16 @@ public class MissionManager : MonoBehaviour
         return available;
     }
 
+    // --- Delayed Unlock ---
+
+    private IEnumerator DelayedUnlock(MissionData mission, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        UnlockMission(mission);
+    }
+
+    // --- Objective Spawning ---
+
     private void SpawnObjective(MissionData mission)
     {
         if (missionObjectivePrefab == null) return;
@@ -148,7 +174,7 @@ public class MissionManager : MonoBehaviour
 
         MissionObjective obj = _activeObjective.GetComponent<MissionObjective>();
         if (obj != null)
-            obj.SetRadius(mission.objectiveRadius);
+            obj.Initialize(mission);
     }
 
     private void DespawnObjective()
