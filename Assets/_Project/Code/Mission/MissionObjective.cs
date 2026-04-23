@@ -2,13 +2,18 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// MissionObjective is spawned dynamically by MissionManager when a mission starts.
-/// It registers itself as a minimap marker on spawn and cleans up on destroy.
+/// Spawned dynamically by MissionManager when a mission starts.
+/// Registers a minimap marker and handles objective completion.
 ///
-/// Supports three objective types:
-/// - GoToLocation: auto-completes when the player enters the radius.
-/// - Interact: player must press E on the objective to complete it.
+/// Three objective types:
+/// - GoToLocation: auto-completes on player proximity.
+/// - Interact: player must press E at the location.
 /// - DefeatTarget: spawns enemies, completes when all are defeated.
+///
+/// The prefab has a visible "Marker" child (green pole). This is:
+/// - Visible for GoToLocation — shows the player where to go.
+/// - Visible for Interact — shows the player what to interact with.
+/// - Hidden for DefeatTarget — the enemy IS the objective.
 /// </summary>
 public class MissionObjective : MonoBehaviour, IInteractable
 {
@@ -34,10 +39,15 @@ public class MissionObjective : MonoBehaviour, IInteractable
         _type = mission.objectiveType;
         _promptText = mission.objectivePromptText;
 
+        // Hide the visible marker for DefeatTarget — the enemy is the objective
         if (_type == ObjectiveType.DefeatTarget)
+        {
+            HideVisualMarker();
             SpawnEnemies(mission);
+        }
     }
 
+    // Legacy support
     public void SetRadius(float radius)
     {
         _triggerRadius = radius;
@@ -73,9 +83,20 @@ public class MissionObjective : MonoBehaviour, IInteractable
                 break;
 
             case ObjectiveType.DefeatTarget:
-                // Completion is handled by enemy death callbacks
-                // Update HUD with remaining count
+                // Completion handled by enemy death callbacks
                 break;
+        }
+    }
+
+    // --- Visual Marker ---
+
+    private void HideVisualMarker()
+    {
+        foreach (Transform child in transform)
+        {
+            MeshRenderer mr = child.GetComponent<MeshRenderer>();
+            if (mr != null)
+                child.gameObject.SetActive(false);
         }
     }
 
@@ -114,7 +135,6 @@ public class MissionObjective : MonoBehaviour, IInteractable
 
         for (int i = 0; i < mission.enemyCount; i++)
         {
-            // Spread enemies in a circle around the objective position
             float angle = (360f / mission.enemyCount) * i;
             Vector3 offset = Quaternion.Euler(0, angle, 0) * Vector3.forward * 3f;
             Vector3 spawnPos = transform.position + offset;
@@ -128,46 +148,32 @@ public class MissionObjective : MonoBehaviour, IInteractable
                 enemy.OnDefeated += HandleEnemyDefeated;
             }
         }
-
-        // Update HUD with objective text
-        HUDManager.Instance?.OnMissionObjectiveUpdated($"Defeat target (0/{_totalEnemies})");
     }
 
     private void HandleEnemyDefeated()
     {
         _enemiesDefeated++;
 
-        // Update HUD
-        HUDManager.Instance?.OnMissionObjectiveUpdated(
-            $"Defeat target ({_enemiesDefeated}/{_totalEnemies})"
-        );
-
-        // Check if all enemies are down
         if (_enemiesDefeated >= _totalEnemies)
-        {
             MissionManager.Instance?.CompleteMission();
-        }
     }
 
     // --- Cleanup ---
 
     private void OnDestroy()
     {
-        // Clean up minimap marker
         if (_minimapMarkerId >= 0 && MinimapMarkerManager.Instance != null)
         {
             MinimapMarkerManager.Instance.UnregisterMissionMarker(_minimapMarkerId);
             _minimapMarkerId = -1;
         }
 
-        // Clean up interaction registration
         if (_isRegistered && InteractionManager.Instance != null)
         {
             InteractionManager.Instance.Unregister(this);
             _isRegistered = false;
         }
 
-        // Clean up enemy event subscriptions
         foreach (EnemyAI enemy in _spawnedEnemies)
         {
             if (enemy != null)
@@ -175,7 +181,7 @@ public class MissionObjective : MonoBehaviour, IInteractable
         }
     }
 
-    // --- IInteractable implementation (Interact type only) ---
+    // --- IInteractable (Interact type only) ---
 
     public int Priority => 15;
     public Vector3 GetPosition() => transform.position;

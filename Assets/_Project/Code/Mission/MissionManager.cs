@@ -2,10 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// MissionManager is the single source of truth for all mission state.
-// Missions can be started from anywhere by calling StartMission().
-// Story events unlock missions by calling UnlockMission().
-
+/// <summary>
+/// Single source of truth for all mission state.
+/// Tracks active mission, spawns objectives, applies rewards/costs,
+/// handles unlock chains with optional delays.
+/// </summary>
 public class MissionManager : MonoBehaviour
 {
     public static MissionManager Instance { get; private set; }
@@ -19,7 +20,6 @@ public class MissionManager : MonoBehaviour
     [Header("Data")]
     [SerializeField] private PlayerStats playerStats;
 
-    // Runtime state tracking — keyed by mission name for fast lookup
     private Dictionary<string, MissionState> _missionStates = new();
     private MissionData _currentMission;
     private GameObject _activeObjective;
@@ -47,22 +47,14 @@ public class MissionManager : MonoBehaviour
 
     public void StartMission(MissionData mission)
     {
-        if (IsMissionActive)
-        {
-            return;
-        }
-
-        if (GetMissionState(mission) != MissionState.Available)
-        {
-            return;
-        }
+        if (IsMissionActive) return;
+        if (GetMissionState(mission) != MissionState.Available) return;
 
         _currentMission = mission;
         _missionStates[mission.missionName] = MissionState.Active;
 
         SpawnObjective(mission);
         HUDManager.Instance?.OnMissionStarted(mission);
-
         WaypointManager.Instance.SetWaypoint(mission.objectivePosition);
     }
 
@@ -84,9 +76,7 @@ public class MissionManager : MonoBehaviour
 
         // Apply costs
         if (playerStats != null && _currentMission.moneyCost > 0)
-        {
             playerStats.AddMoney(-_currentMission.moneyCost);
-        }
 
         // Handle unlock chain
         if (_currentMission.missionsToUnlockOnComplete != null)
@@ -127,7 +117,7 @@ public class MissionManager : MonoBehaviour
         if (GetMissionState(mission) == MissionState.Locked)
         {
             _missionStates[mission.missionName] = MissionState.Available;
-            HUDManager.Instance?.ShowToast($"New job available");
+            HUDManager.Instance?.ShowToast("New job available");
         }
     }
 
@@ -152,15 +142,11 @@ public class MissionManager : MonoBehaviour
         return available;
     }
 
-    // --- Delayed Unlock ---
-
     private IEnumerator DelayedUnlock(MissionData mission, float delay)
     {
         yield return new WaitForSeconds(delay);
         UnlockMission(mission);
     }
-
-    // --- Objective Spawning ---
 
     private void SpawnObjective(MissionData mission)
     {

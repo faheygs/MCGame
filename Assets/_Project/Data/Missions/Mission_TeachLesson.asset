@@ -21,7 +21,7 @@ MonoBehaviour:
   objectivePromptText: Interact
   objectivePosition: {x: 5, y: 0, z: 140}
   objectiveRadius: 15
-  enemyPrefab: {fileID: 3658341076048335131, guid: 4ce1b5a0e2e094a4fadfebb54b6a25cc, type: 3}
+  enemyPrefab: {fileID: 3329512025338906645, guid: 33534b2a2cb7b394b92d46ab9ab30346, type: 3}
   enemyCount: 1
   moneyReward: 750
   reputationReward: 75

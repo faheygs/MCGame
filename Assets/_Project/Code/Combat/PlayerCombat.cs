@@ -2,15 +2,16 @@ using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// Handles player melee combat. Listens for light/heavy attack input,
-/// triggers animations, and performs hit detection via SphereCast.
+/// Handles all player combat — attacking AND taking hits.
+///
+/// Attacking: Listens for light/heavy attack input, triggers animations,
+/// performs hit detection via SphereCast after a tunable delay.
+///
+/// Taking hits: Listens to Health.OnDamaged, plays Hit animation,
+/// briefly stuns the player (disables movement and interrupts attacks).
 ///
 /// Light attack: random punch or kick, fast, low damage.
 /// Heavy attack: random heavy punch or kick, slower, more damage.
-///
-/// Hit detection fires during a timed window after the animation starts.
-/// Only one hit per attack — prevents multi-hit on a single swing.
-/// Player movement is briefly disabled during attacks.
 /// </summary>
 public class PlayerCombat : MonoBehaviour
 {
@@ -20,15 +21,17 @@ public class PlayerCombat : MonoBehaviour
 
     [Header("Light Attack")]
     [SerializeField] private int lightDamage = 15;
-    [SerializeField] private float lightWindup = 0.15f;
-    [SerializeField] private float lightActiveWindow = 0.2f;
-    [SerializeField] private float lightRecovery = 0.3f;
+    [Tooltip("Seconds from animation start to when the hit lands.")]
+    [SerializeField] private float lightHitDelay = 0.3f;
+    [Tooltip("Total attack duration — should match the animation clip length.")]
+    [SerializeField] private float lightTotalDuration = 0.8f;
 
     [Header("Heavy Attack")]
     [SerializeField] private int heavyDamage = 35;
-    [SerializeField] private float heavyWindup = 0.35f;
-    [SerializeField] private float heavyActiveWindow = 0.25f;
-    [SerializeField] private float heavyRecovery = 0.5f;
+    [Tooltip("Seconds from animation start to when the hit lands.")]
+    [SerializeField] private float heavyHitDelay = 0.5f;
+    [Tooltip("Total attack duration — should match the animation clip length.")]
+    [SerializeField] private float heavyTotalDuration = 1.2f;
 
     [Header("Hit Detection")]
     [Tooltip("How far in front of the player the hit check reaches.")]
@@ -39,7 +42,12 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private float attackHeightOffset = 1.0f;
     [SerializeField] private LayerMask hitLayers;
 
+    [Header("Hit Reaction")]
+    [Tooltip("How long the player is stunned after being hit.")]
+    [SerializeField] private float hitStunDuration = 0.5f;
+
     private bool _isAttacking;
+    private bool _isStunned;
     private Health _ownHealth;
     private PlayerController _playerController;
 
@@ -48,6 +56,8 @@ public class PlayerCombat : MonoBehaviour
     private static readonly int LightKickHash = Animator.StringToHash("LightKick");
     private static readonly int HeavyPunchHash = Animator.StringToHash("HeavyPunch");
     private static readonly int HeavyKickHash = Animator.StringToHash("HeavyKick");
+    private static readonly int HitHash = Animator.StringToHash("Hit");
+    private static readonly int KnockoutHash = Animator.StringToHash("Knockout");
 
     public bool IsAttacking => _isAttacking;
 
@@ -67,6 +77,12 @@ public class PlayerCombat : MonoBehaviour
             inputReader.LightAttackPressed += HandleLightAttack;
             inputReader.HeavyAttackPressed += HandleHeavyAttack;
         }
+
+        if (_ownHealth != null)
+        {
+            _ownHealth.OnDamaged += HandleDamaged;
+            _ownHealth.OnDied += HandleDied;
+        }
     }
 
     private void OnDisable()
@@ -76,6 +92,41 @@ public class PlayerCombat : MonoBehaviour
             inputReader.LightAttackPressed -= HandleLightAttack;
             inputReader.HeavyAttackPressed -= HandleHeavyAttack;
         }
+
+        if (_ownHealth != null)
+        {
+            _ownHealth.OnDamaged -= HandleDamaged;
+            _ownHealth.OnDied -= HandleDied;
+        }
+    }
+
+    // ===================
+    // ATTACKING
+    // ===================
+
+    private void HandleLightAttack()
+    {
+        if (!CanAttack()) return;
+
+        int triggerHash = Random.value > 0.5f ? LightPunchHash : LightKickHash;
+        StartCoroutine(AttackCoroutine(triggerHash, lightDamage, lightHitDelay, lightTotalDuration, false));
+    }
+
+    private void HandleHeavyAttack()
+    {
+        if (!CanAttack()) return;
+
+        int triggerHash = Random.value > 0.5f ? HeavyPunchHash : HeavyKickHash;
+        StartCoroutine(AttackCoroutine(triggerHash, heavyDamage, heavyHitDelay, heavyTotalDuration, true));
+    }
+
+    private bool CanAttack()
+    {
+        if (_isAttacking) return false;
+        if (_isStunned) return false;
+        if (_ownHealth != null && _ownHealth.IsDead) return false;
+        if (PlayerStateManager.Instance != null && PlayerStateManager.Instance.IsInVehicle) return false;
+        return true;
     }
 
     private void ClearCombatTriggers()
@@ -86,79 +137,32 @@ public class PlayerCombat : MonoBehaviour
         animator.ResetTrigger(HeavyKickHash);
     }
 
-    private void HandleLightAttack()
-    {
-        if (!CanAttack()) return;
-
-        // Random: punch or kick
-        int triggerHash = Random.value > 0.5f ? LightPunchHash : LightKickHash;
-        StartCoroutine(AttackCoroutine(triggerHash, lightDamage, lightWindup, lightActiveWindow, lightRecovery, false));
-    }
-
-    private void HandleHeavyAttack()
-    {
-        if (!CanAttack()) return;
-
-        // Random: heavy punch or heavy kick
-        int triggerHash = Random.value > 0.5f ? HeavyPunchHash : HeavyKickHash;
-        StartCoroutine(AttackCoroutine(triggerHash, heavyDamage, heavyWindup, heavyActiveWindow, heavyRecovery, true));
-    }
-
-    private bool CanAttack()
-    {
-        // Already swinging
-        if (_isAttacking) return false;
-
-        // Dead
-        if (_ownHealth != null && _ownHealth.IsDead) return false;
-
-        // On a vehicle
-        if (PlayerStateManager.Instance != null && PlayerStateManager.Instance.IsInVehicle) return false;
-
-        return true;
-    }
-
-    private IEnumerator AttackCoroutine(int animTrigger, int damage, float windup, float activeWindow, float recovery, bool isHeavy)
+    private IEnumerator AttackCoroutine(int animTrigger, int damage, float hitDelay, float totalDuration, bool isHeavy)
     {
         _isAttacking = true;
 
-        // Disable movement during attack
         if (_playerController != null) _playerController.enabled = false;
 
-        // Clear any queued triggers before setting the new one
         ClearCombatTriggers();
-        // Trigger animation
         animator.SetTrigger(animTrigger);
 
-        // Wind-up phase — animation is starting, no hit yet
-        yield return new WaitForSeconds(windup);
+        // Wait until the fist/foot connects
+        yield return new WaitForSeconds(hitDelay);
 
-        // Active window — perform hit detection
-        bool hasHit = false;
+        // Perform hit detection at the contact moment
+        PerformHitDetection(damage, isHeavy);
 
-        float timer = 0f;
-        while (timer < activeWindow)
-        {
-            if (!hasHit)
-                hasHit = PerformHitDetection(damage, isHeavy);
+        // Wait for the rest of the animation
+        float remaining = totalDuration - hitDelay;
+        if (remaining > 0)
+            yield return new WaitForSeconds(remaining);
 
-            timer += Time.deltaTime;
-            yield return null;
-        }
-
-        // Recovery phase — animation finishing, still can't move
-        yield return new WaitForSeconds(recovery);
-
-        // Re-enable movement
         if (_playerController != null) _playerController.enabled = true;
 
         _isAttacking = false;
     }
 
-    /// <summary>
-    /// SphereCast forward from chest height. Returns true if an enemy was hit.
-    /// </summary>
-    private bool PerformHitDetection(int damage, bool isHeavy)
+    private void PerformHitDetection(int damage, bool isHeavy)
     {
         Vector3 origin = transform.position + Vector3.up * attackHeightOffset;
         Vector3 direction = transform.forward;
@@ -176,16 +180,68 @@ public class PlayerCombat : MonoBehaviour
                 );
 
                 targetHealth.TakeDamage(info);
-                return true;
             }
         }
-
-        return false;
     }
+
+    // ===================
+    // TAKING HITS
+    // ===================
+
+    private void HandleDamaged(DamageInfo info)
+    {
+        if (_ownHealth.IsDead) return;
+
+        // Interrupt current attack if we get hit mid-swing
+        if (_isAttacking)
+        {
+            StopAllCoroutines();
+            _isAttacking = false;
+        }
+
+        // Play hit animation
+        animator.SetTrigger(HitHash);
+
+        // Start hit stun
+        StartCoroutine(HitStunCoroutine());
+    }
+
+    private IEnumerator HitStunCoroutine()
+    {
+        _isStunned = true;
+
+        if (_playerController != null) _playerController.enabled = false;
+
+        yield return new WaitForSeconds(hitStunDuration);
+
+        if (_ownHealth != null && !_ownHealth.IsDead)
+        {
+            if (_playerController != null) _playerController.enabled = true;
+        }
+
+        _isStunned = false;
+    }
+
+    private void HandleDied()
+    {
+        // Stop everything
+        StopAllCoroutines();
+        _isAttacking = false;
+        _isStunned = true;
+
+        // Play knockout
+        animator.SetTrigger(KnockoutHash);
+
+        // Disable movement permanently until respawn
+        if (_playerController != null) _playerController.enabled = false;
+    }
+
+    // ===================
+    // DEBUG
+    // ===================
 
     private void OnDrawGizmosSelected()
     {
-        // Visualize attack range in editor
         Vector3 origin = transform.position + Vector3.up * attackHeightOffset;
         Vector3 end = origin + transform.forward * attackRange;
 
