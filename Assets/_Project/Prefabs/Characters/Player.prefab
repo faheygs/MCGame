@@ -93,7 +93,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 619a016fed4e83f428cf9f1a51f80c8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeatCooldown
-  cooldownTime: 5
+  cooldownTime: 30
   playerStats: {fileID: 11400000, guid: 6c9949683bd333b4f8570a1d74e662f9, type: 2}
 --- !u!114 &4417739939279003638
 MonoBehaviour:
@@ -153,19 +153,18 @@ MonoBehaviour:
   inputReader: {fileID: 11400000, guid: 893ce312c7f9979449c76bffff519bf3, type: 2}
   animator: {fileID: 7486867354065206539}
   lightDamage: 15
-  lightWindup: 0.15
-  lightActiveWindow: 0.2
-  lightRecovery: 0.3
+  lightHitDelay: 0.667
+  lightTotalDuration: 1.5
   heavyDamage: 35
-  heavyWindup: 0.35
-  heavyActiveWindow: 0.25
-  heavyRecovery: 0.5
+  heavyHitDelay: 1.1
+  heavyTotalDuration: 2.167
   attackRange: 1.8
   attackRadius: 0.6
   attackHeightOffset: 1
   hitLayers:
     serializedVersion: 2
     m_Bits: 8192
+  hitStunDuration: 1.27
 --- !u!1001 &3930560112942825626
 PrefabInstance:
   m_ObjectHideFlags: 0

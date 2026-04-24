@@ -13,6 +13,14 @@ public class HeatCooldown : MonoBehaviour
 
     private float _timer;
 
+    /// <summary>
+    /// Public accessor for PlayerStats. Used by CrimeReporter.
+    /// </summary>
+    public PlayerStats GetPlayerStats()
+    {
+        return playerStats;
+    }
+
     private void OnEnable()
     {
         playerStats.OnHeatChanged += HandleHeatChanged;
