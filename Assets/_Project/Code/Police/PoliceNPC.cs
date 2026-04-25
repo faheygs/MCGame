@@ -27,17 +27,17 @@ public class PoliceNPC : MonoBehaviour
     [SerializeField] private float runSpeed = 5f;
 
     [Tooltip("Distance threshold to switch from walk to run")]
-    [SerializeField] private float runDistance = 15f;
+    [SerializeField] private float runDistance = 2f;
 
     [Header("Combat")]
     [Tooltip("Distance to enter Engage state and start attacking")]
-    [SerializeField] private float engageRange = 2f;
+    [SerializeField] private float engageRange = 1.5f;
 
     [Tooltip("Damage dealt per punch")]
     [SerializeField] private int attackDamage = 10;
 
     [Tooltip("Seconds between attacks")]
-    [SerializeField] private float attackCooldown = 1.5f;
+    [SerializeField] private float attackCooldown = 2.5f;
 
     [Header("Disengage")]
     [Tooltip("Seconds to walk away before being destroyed")]
@@ -46,6 +46,13 @@ public class PoliceNPC : MonoBehaviour
     [Header("Knockout")]
     [Tooltip("Seconds before knocked out police NPC is destroyed")]
     [SerializeField] private float knockoutDestroyDelay = 10f;
+
+    [Header("Hit Stun")]
+    [Tooltip("How long the police NPC is stunned after being hit")]
+    [SerializeField] private float hitStunDuration = 0.8f;
+
+    private bool _isStunned;
+    private float _stunTimer;
 
     // =========================================================================
     // RUNTIME STATE
@@ -100,6 +107,17 @@ public class PoliceNPC : MonoBehaviour
     private void Update()
     {
         if (_isKnockedOut) return;
+
+        // Handle stun timer
+        if (_isStunned)
+        {
+            _stunTimer -= Time.deltaTime;
+            if (_stunTimer <= 0f)
+            {
+                _isStunned = false;
+            }
+            return; // Can't do anything while stunned
+        }
 
         switch (_currentState)
         {
@@ -253,7 +271,20 @@ public class PoliceNPC : MonoBehaviour
             _animator.SetTrigger("Attack");
         }
 
-        // Deal damage to player
+        // Delay damage to sync with punch animation
+        StartCoroutine(DealDamageDelayed(0.4f));
+    }
+
+    private System.Collections.IEnumerator DealDamageDelayed(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        // Re-check distance — player may have moved away during wind-up
+        if (_player == null || _isKnockedOut) yield break;
+
+        float dist = Vector3.Distance(transform.position, _player.position);
+        if (dist > engageRange * 1.5f) yield break;
+
         if (_playerHealth != null && !_playerHealth.IsDead)
         {
             Vector3 hitDir = (_player.position - transform.position).normalized;
@@ -262,12 +293,12 @@ public class PoliceNPC : MonoBehaviour
                 attackDamage,
                 gameObject,
                 hitDir,
-                false // police punches are not heavy attacks
+                false
             );
 
             _playerHealth.TakeDamage(info);
 
-            Debug.Log($"[PoliceNPC] '{gameObject.name}' attacked player for {attackDamage} damage.");
+            Debug.Log($"[PoliceNPC] '{gameObject.name}' hit player for {attackDamage} damage.");
         }
     }
 
@@ -342,5 +373,26 @@ public class PoliceNPC : MonoBehaviour
     {
         if (_isKnockedOut) return;
         SetState(PoliceState.Disengage);
+    }
+
+    /// <summary>
+    /// Called by PoliceHealth when this NPC takes damage.
+    /// Interrupts current attack and stuns briefly.
+    /// </summary>
+    public void ApplyHitStun()
+    {
+        if (_isKnockedOut) return;
+
+        _isStunned = true;
+        _stunTimer = hitStunDuration;
+
+        // Reset attack cooldown so they don't attack immediately after stun ends
+        _attackTimer = attackCooldown * 0.5f;
+
+        // Stop movement during stun
+        if (_animator != null)
+        {
+            _animator.SetFloat("Speed", 0f);
+        }
     }
 }

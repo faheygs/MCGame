@@ -27,4 +27,4 @@ MonoBehaviour:
   reputationReward: 75
   moneyCost: 0
   missionsToUnlockOnComplete: []
-  unlockDelay: 30
+  unlockDelay: 5

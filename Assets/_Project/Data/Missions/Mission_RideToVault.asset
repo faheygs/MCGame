@@ -20,9 +20,11 @@ MonoBehaviour:
   objectivePromptText: Interact
   objectivePosition: {x: 0, y: 0, z: 145}
   objectiveRadius: 5
+  enemyPrefab: {fileID: 0}
+  enemyCount: 1
   moneyReward: 500
   reputationReward: 50
   moneyCost: 0
   missionsToUnlockOnComplete:
   - {fileID: 11400000, guid: a4ea92c0209c5474a9614fea1f190682, type: 2}
-  unlockDelay: 30
+  unlockDelay: 5

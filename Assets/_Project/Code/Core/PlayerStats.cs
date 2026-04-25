@@ -27,6 +27,15 @@ public class PlayerStats : ScriptableObject
     [SerializeField] private int _heatLevel = 0;
     [SerializeField] private int _maxHeatLevel = 5;
 
+    [Header("Bust System")]
+    [SerializeField] private int _bustStreak = 0;
+    [SerializeField] private bool _isLayingLow = false;
+    [SerializeField] private float _layLowTimeRemaining = 0f;
+
+    // Events
+    public event Action<bool> OnLayLowChanged;
+    public event Action<float> OnLayLowTimerUpdated;
+
     [Header("Ammo")]
     [SerializeField] private int _currentAmmo = 0;
     [SerializeField] private int _maxAmmo = 0;
@@ -48,6 +57,9 @@ public class PlayerStats : ScriptableObject
     public float MaxHealth => _maxHealth;
     public int HeatLevel => _heatLevel;
     public int MaxHeatLevel => _maxHeatLevel;
+    public int BustStreak => _bustStreak;
+    public bool IsLayingLow => _isLayingLow;
+    public float LayLowTimeRemaining => _layLowTimeRemaining;
     public int CurrentAmmo => _currentAmmo;
     public int MaxAmmo => _maxAmmo;
 
@@ -170,5 +182,71 @@ public class PlayerStats : ScriptableObject
         }
 
         OnRankChanged?.Invoke(clubRank);
+    }
+
+    // --- Bust System ---
+    public void IncrementBustStreak()
+    {
+        _bustStreak++;
+        Debug.Log($"[PlayerStats] Bust streak: {_bustStreak}");
+    }
+
+    public void DecrementBustStreak()
+    {
+        _bustStreak = Mathf.Max(0, _bustStreak - 1);
+        Debug.Log($"[PlayerStats] Bust streak decayed: {_bustStreak}");
+    }
+
+    public void StartLayLow(float duration)
+    {
+        _isLayingLow = true;
+        _layLowTimeRemaining = duration;
+        OnLayLowChanged?.Invoke(true);
+        Debug.Log($"[PlayerStats] Laying low for {duration} seconds.");
+    }
+
+    public void ExtendLayLow(float additionalTime)
+    {
+        if (!_isLayingLow) return;
+        _layLowTimeRemaining += additionalTime;
+        Debug.Log($"[PlayerStats] Lay-low extended by {additionalTime}s. Remaining: {_layLowTimeRemaining}s");
+    }
+
+    public void UpdateLayLowTimer(float deltaTime)
+    {
+        if (!_isLayingLow) return;
+
+        _layLowTimeRemaining -= deltaTime;
+        OnLayLowTimerUpdated?.Invoke(_layLowTimeRemaining);
+
+        if (_layLowTimeRemaining <= 0f)
+        {
+            EndLayLow();
+        }
+    }
+
+    private void EndLayLow()
+    {
+        _isLayingLow = false;
+        _layLowTimeRemaining = 0f;
+        _bustStreak = Mathf.Max(0, _bustStreak); // Preserve streak for decay
+        OnLayLowChanged?.Invoke(false);
+        Debug.Log("[PlayerStats] Lay-low ended. BACK IN BUSINESS.");
+    }
+
+    public void LoseMoney(float percentage)
+    {
+        int loss = Mathf.RoundToInt(_money * percentage);
+        _money = Mathf.Max(0, _money - loss);
+        OnMoneyChanged?.Invoke(_money);
+        Debug.Log($"[PlayerStats] Lost {loss} money ({percentage * 100}%). Remaining: {_money}");
+    }
+
+    public void LoseReputation(int amount)
+    {
+        _reputation = Mathf.Max(0, _reputation - amount);
+        _totalReputation = Mathf.Max(0, _totalReputation - amount);
+        OnReputationChanged?.Invoke(_reputation);
+        Debug.Log($"[PlayerStats] Lost {amount} reputation. Current: {_reputation}, Total: {_totalReputation}");
     }
 }

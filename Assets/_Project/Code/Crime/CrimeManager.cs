@@ -100,13 +100,19 @@ public class CrimeManager : MonoBehaviour
     {
         if (crimeType == null || playerStats == null) return;
 
-        // Apply heat — always happens when witnessed, regardless of corruption
+        // If laying low, extend the lay-low timer
+        if (playerStats.IsLayingLow)
+        {
+            playerStats.ExtendLayLow(playerStats.LayLowTimeRemaining);
+            Debug.Log($"[CrimeManager] Crime during lay-low! Timer doubled.");
+        }
+
+        // Apply heat
         playerStats.AddHeat(crimeType.baseHeatAmount);
 
         Debug.Log($"[CrimeManager] Crime '{crimeType.crimeName}' witnessed. " +
-                  $"+{crimeType.baseHeatAmount} heat. Current: {playerStats.HeatLevel}");
+                $"+{crimeType.baseHeatAmount} heat. Current: {playerStats.HeatLevel}");
 
-        // Fire event — PoliceManager, reputation, etc. react to this
         OnCrimeReported?.Invoke(crimeType, crimePosition);
     }
 

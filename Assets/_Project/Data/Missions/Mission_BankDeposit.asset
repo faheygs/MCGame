@@ -28,4 +28,4 @@ MonoBehaviour:
   moneyCost: 50
   missionsToUnlockOnComplete:
   - {fileID: 11400000, guid: 22592571654a2bc41b47750dfac8cf93, type: 2}
-  unlockDelay: 30
+  unlockDelay: 5

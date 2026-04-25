@@ -423,12 +423,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PoliceNPC
   walkSpeed: 2.5
   runSpeed: 5
-  runDistance: 15
-  engageRange: 2
-  attackDamage: 10
-  attackCooldown: 2
+  runDistance: 2
+  engageRange: 1.5
+  attackDamage: 5
+  attackCooldown: 3
   disengageTime: 8
   knockoutDestroyDelay: 10
+  hitStunDuration: 0.8
 --- !u!114 &-4371219413749889119
 MonoBehaviour:
   m_ObjectHideFlags: 0

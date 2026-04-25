@@ -26,6 +26,9 @@ public class MissionGiver : MonoBehaviour, IInteractable
     [Tooltip("Higher priority wins over lower interactables when both are in range.")]
     [SerializeField] private int priority = 5;
 
+    [Header("Data")]
+    [SerializeField] private PlayerStats playerStats;
+
     private Transform _player;
     private bool _isBlinking;
     private bool _isRegistered;
@@ -169,6 +172,10 @@ public class MissionGiver : MonoBehaviour, IInteractable
 
         // Player must be on foot
         if (PlayerStateManager.Instance != null && PlayerStateManager.Instance.IsInVehicle)
+            return false;
+
+        // Cannot start missions while laying low
+        if (playerStats != null && playerStats.IsLayingLow)
             return false;
 
         return true;

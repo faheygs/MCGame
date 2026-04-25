@@ -25,6 +25,8 @@ public class Health : MonoBehaviour
     public event Action OnDied;
 
     private bool _hasDied;
+    private GameObject _lastDamageSource;
+    public GameObject LastDamageSource => _lastDamageSource;
 
     private void Awake()
     {
@@ -38,6 +40,8 @@ public class Health : MonoBehaviour
     public void TakeDamage(DamageInfo info)
     {
         if (_hasDied) return;
+
+        _lastDamageSource = info.source;
 
         currentHP = Mathf.Max(0, currentHP - info.amount);
         OnDamaged?.Invoke(info);
@@ -65,5 +69,6 @@ public class Health : MonoBehaviour
     {
         currentHP = maxHP;
         _hasDied = false;
+        _lastDamageSource = null;
     }
 }

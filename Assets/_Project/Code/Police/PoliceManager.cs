@@ -39,6 +39,19 @@ public class PoliceManager : MonoBehaviour
     [Tooltip("Seconds between reinforcement checks when heat stays high")]
     [SerializeField] private float reinforcementInterval = 15f;
 
+    [Header("Bust Consequences")]
+    [Tooltip("Lay-low duration in seconds for each bust level")]
+    [SerializeField] private float[] layLowDurations = { 120f, 300f, 600f }; // 2min, 5min, 10min
+
+    [Tooltip("Money loss percentage for each bust level")]
+    [SerializeField] private float[] moneyPenalties = { 0.15f, 0.30f, 0.50f };
+
+    [Tooltip("Rep loss for each bust level")]
+    [SerializeField] private int[] repPenalties = { 50, 150, 300 };
+
+    [Tooltip("Seconds of clean play before bust streak decays by 1")]
+    [SerializeField] private float bustStreakDecayTime = 1200f; // 20 minutes
+
     // =========================================================================
     // EVENTS
     // =========================================================================
@@ -57,6 +70,9 @@ public class PoliceManager : MonoBehaviour
     private Dictionary<GameObject, int> _policeMarkerIds = new Dictionary<GameObject, int>();
     private int _currentHeatLevel;
     private float _reinforcementTimer;
+    private float _bustStreakDecayTimer;
+    private Health _playerHealth;
+    private bool _processingBust;
 
     // =========================================================================
     // PUBLIC ACCESSORS
@@ -104,6 +120,11 @@ public class PoliceManager : MonoBehaviour
         {
             playerStats.OnHeatChanged -= HandleHeatChanged;
         }
+
+        if (_playerHealth != null)
+        {
+            _playerHealth.OnDied -= HandlePlayerDied;
+        }
     }
 
     private void Start()
@@ -122,6 +143,17 @@ public class PoliceManager : MonoBehaviour
         if (playerStats == null)
         {
             Debug.LogError("[PoliceManager] PlayerStats not assigned.", this);
+        }
+
+        // Subscribe to player death for bust detection
+        PlayerController playerController = FindAnyObjectByType<PlayerController>();
+        if (playerController != null)
+        {
+            _playerHealth = playerController.GetComponent<Health>();
+            if (_playerHealth != null)
+            {
+                _playerHealth.OnDied += HandlePlayerDied;
+            }
         }
     }
 
@@ -142,6 +174,23 @@ public class PoliceManager : MonoBehaviour
 
         CleanupDestroyedPolice();
         HandleDistanceDespawn();
+
+        // Tick lay-low timer
+        if (playerStats != null && playerStats.IsLayingLow)
+        {
+            playerStats.UpdateLayLowTimer(Time.deltaTime);
+        }
+
+        // Tick bust streak decay
+        if (playerStats != null && playerStats.BustStreak > 0 && !playerStats.IsLayingLow)
+        {
+            _bustStreakDecayTimer += Time.deltaTime;
+            if (_bustStreakDecayTimer >= bustStreakDecayTime)
+            {
+                _bustStreakDecayTimer = 0f;
+                playerStats.DecrementBustStreak();
+            }
+        }
     }
 
     // =========================================================================
@@ -171,6 +220,9 @@ public class PoliceManager : MonoBehaviour
     {
         int previousHeat = _currentHeatLevel;
         _currentHeatLevel = newHeatLevel;
+
+        // Don't react to heat changes during bust processing
+        if (_processingBust) return;
 
         Debug.Log($"[PoliceManager] Heat changed: {previousHeat} → {newHeatLevel}");
 
@@ -422,5 +474,194 @@ public class PoliceManager : MonoBehaviour
                 _activePolice.RemoveAt(i);
             }
         }
+    }
+
+    // =========================================================================
+    // BUST SYSTEM
+    // =========================================================================
+
+    private void HandlePlayerDied()
+    {
+        if (_playerHealth == null) return;
+
+        GameObject source = _playerHealth.LastDamageSource;
+        if (source != null && source.GetComponent<PoliceNPC>() != null)
+        {
+            _processingBust = true;
+
+            // IMMEDIATELY destroy all police — not disengage, DESTROY
+            for (int i = _activePolice.Count - 1; i >= 0; i--)
+            {
+                if (_activePolice[i] != null)
+                {
+                    RemovePoliceMarker(_activePolice[i]);
+                    Destroy(_activePolice[i]);
+                }
+            }
+            _activePolice.Clear();
+            _policeMarkerIds.Clear();
+
+            // Clear heat IMMEDIATELY — nothing should spawn
+            while (playerStats.HeatLevel > 0)
+            {
+                playerStats.RemoveHeat(1);
+            }
+            _currentHeatLevel = 0;
+
+            StartCoroutine(BustSequence());
+        }
+    }
+
+    private System.Collections.IEnumerator BustSequence()
+    {
+        Debug.Log("[PoliceManager] PLAYER BUSTED BY POLICE!");
+
+        Animator playerAnimator = _playerHealth.GetComponentInChildren<Animator>();
+        if (playerAnimator != null)
+        {
+            // Wait until Knockout state is actually playing on any layer
+            float timeout = 3f;
+            float elapsed = 0f;
+            int knockoutLayer = -1;
+
+            while (elapsed < timeout)
+            {
+                for (int i = 0; i < playerAnimator.layerCount; i++)
+                {
+                    if (playerAnimator.GetCurrentAnimatorStateInfo(i).IsName("Knockout"))
+                    {
+                        knockoutLayer = i;
+                        break;
+                    }
+                }
+
+                if (knockoutLayer >= 0) break;
+
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            // Now wait for the knockout animation to finish
+            if (knockoutLayer >= 0)
+            {
+                Debug.Log($"[PoliceManager] Knockout playing on layer {knockoutLayer}. Waiting for it to finish.");
+
+                while (playerAnimator.GetCurrentAnimatorStateInfo(knockoutLayer).IsName("Knockout") &&
+                    playerAnimator.GetCurrentAnimatorStateInfo(knockoutLayer).normalizedTime < 0.95f)
+                {
+                    yield return null;
+                }
+
+                Debug.Log("[PoliceManager] Knockout animation complete.");
+            }
+            else
+            {
+                Debug.LogWarning("[PoliceManager] Knockout state never found. Using fallback.");
+                yield return new WaitForSeconds(2f);
+            }
+        }
+
+        // Hold on ground briefly
+        yield return new WaitForSeconds(1f);
+
+        // Apply consequences
+        playerStats.IncrementBustStreak();
+        int streak = playerStats.BustStreak;
+        int consequenceIndex = Mathf.Min(streak - 1, 2);
+
+        playerStats.LoseMoney(moneyPenalties[consequenceIndex]);
+        playerStats.LoseReputation(repPenalties[consequenceIndex]);
+
+        float layLowDuration = layLowDurations[consequenceIndex];
+        if (playerStats.IsLayingLow)
+        {
+            playerStats.ExtendLayLow(layLowDuration);
+        }
+        else
+        {
+            playerStats.StartLayLow(layLowDuration);
+        }
+
+        _bustStreakDecayTimer = 0f;
+
+        RespawnPlayerAtCompound();
+
+        _processingBust = false;
+
+        Debug.Log($"[PoliceManager] Bust complete. Streak: {streak}, Lay-low: {layLowDuration}s");
+    }
+
+    private void RespawnPlayerAtCompound()
+    {
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        if (player == null) return;
+
+        // Find player spawn point
+        SpawnPoint[] spawnPoints = FindObjectsByType<SpawnPoint>(FindObjectsInactive.Exclude);
+        Vector3 respawnPos = Vector3.zero;
+        bool foundSpawn = false;
+
+        foreach (SpawnPoint sp in spawnPoints)
+        {
+            if (sp.Type == SpawnPoint.SpawnType.PlayerStart)
+            {
+                respawnPos = sp.Position;
+                foundSpawn = true;
+                break;
+            }
+        }
+
+        if (!foundSpawn)
+        {
+            Debug.LogWarning("[PoliceManager] No PlayerStart spawn point found. Respawning at origin.");
+        }
+
+        // Disable CharacterController to allow position change
+        CharacterController cc = player.GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = false;
+
+        // Move player
+        player.transform.position = respawnPos;
+
+        // Re-enable CharacterController
+        if (cc != null) cc.enabled = true;
+
+        // Reset player health
+        Health playerHealth = player.GetComponent<Health>();
+        if (playerHealth != null)
+        {
+            playerHealth.Reset();
+        }
+
+        // Reset animator to idle — clear knockout state
+        Animator playerAnimator = player.GetComponentInChildren<Animator>();
+        if (playerAnimator != null)
+        {
+            playerAnimator.ResetTrigger("Knockout");
+            playerAnimator.ResetTrigger("Hit");
+
+            // Reset ALL layers to their default state
+            for (int i = 0; i < playerAnimator.layerCount; i++)
+            {
+                playerAnimator.Play("Empty", i, 0f);
+            }
+
+            // Force base layer to Idle
+            playerAnimator.Play("Idle", 0, 0f);
+        }
+
+        // Re-enable player controller
+        player.enabled = true;
+
+        // Reset combat — stop all coroutines and clear state
+        PlayerCombat combat = player.GetComponent<PlayerCombat>();
+        if (combat != null)
+        {
+            combat.StopAllCoroutines();
+            combat.enabled = false;
+            combat.enabled = true;
+        }
+
+        Debug.Log($"[PoliceManager] Player respawned at {respawnPos}");
     }
 }

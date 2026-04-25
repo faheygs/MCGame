@@ -6,7 +6,7 @@ using UnityEngine;
 public class HeatCooldown : MonoBehaviour
 {
     [Header("Settings")]
-    [SerializeField] private float cooldownTime = 10f;
+    [SerializeField] private float cooldownTime = 15f;
 
     [Header("Data")]
     [SerializeField] private PlayerStats playerStats;

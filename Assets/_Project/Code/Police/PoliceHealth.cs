@@ -38,10 +38,17 @@ public class PoliceHealth : MonoBehaviour
     {
         if (_isKnockedOut) return;
 
-        // Play hit animation when damaged but not dead
+        // Play hit animation
         if (_animator != null && !_health.IsDead)
         {
             _animator.SetTrigger("Hit");
+        }
+
+        // Tell PoliceNPC to stun
+        PoliceNPC policeAI = GetComponent<PoliceNPC>();
+        if (policeAI != null)
+        {
+            policeAI.ApplyHitStun();
         }
     }
 
