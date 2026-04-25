@@ -17,6 +17,7 @@ public class SpawnPoint : MonoBehaviour
         MissionActor,       // NPCs spawned as part of a mission
         MissionTarget,      // Props/objects spawned as mission targets
         PlayerStart,        // Where the player starts in this area
+        Police,             // Where the police spawn
         Generic             // Anything else
     }
 
@@ -55,6 +56,7 @@ public class SpawnPoint : MonoBehaviour
             case SpawnType.MissionActor:     return Color.red;
             case SpawnType.MissionTarget:    return new Color(1f, 0.5f, 0f);
             case SpawnType.PlayerStart:      return Color.green;
+            case SpawnType.Police:           return Color.blue;
             default:                         return Color.white;
         }
     }

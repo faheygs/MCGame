@@ -20,6 +20,7 @@ public class MinimapMarkerManager : MonoBehaviour
     [SerializeField] private Sprite missionSprite;
     [SerializeField] private Sprite objectiveSprite;
     [SerializeField] private Sprite outlineSprite;
+    [SerializeField] private Sprite policeSprite; 
 
     [Header("Marker Sizes")]
     [SerializeField] private float playerMarkerSize = 24f;
@@ -27,12 +28,14 @@ public class MinimapMarkerManager : MonoBehaviour
     [SerializeField] private float missionMarkerSize = 18f;
     [SerializeField] private float objectiveMarkerSize = 20f;
     [SerializeField] private float highlightSize = 26f;
+    [SerializeField] private float policeMarkerSize = 16f;
 
     [Header("Colors")]
     [SerializeField] private Color playerColor = Color.white;
     [SerializeField] private Color waypointColor = new Color(0.831f, 0.388f, 0.102f);
     [SerializeField] private Color missionColor = new Color(0.941f, 0.753f, 0.251f);
     [SerializeField] private Color objectiveColor = Color.white;
+    [SerializeField] private Color policeColor = Color.blue;
 
     private RectTransform _minimapMask;
     private RectTransform _markerContainer;
@@ -177,6 +180,19 @@ public class MinimapMarkerManager : MonoBehaviour
         MarkerData data = new MarkerData
         {
             icon = CreateIconObject("Marker_Objective", objectiveSprite, objectiveMarkerSize, objectiveColor),
+            getWorldPos = getWorldPos,
+            clampToEdge = true
+        };
+
+        _missionMarkers.Add(data);
+        return _missionMarkers.Count - 1;
+    }
+
+    public int RegisterPoliceMarker(System.Func<Vector3> getWorldPos)
+    {
+        MarkerData data = new MarkerData
+        {
+            icon = CreateIconObject("Marker_Police", policeSprite != null ? policeSprite : missionSprite, policeMarkerSize, policeColor),
             getWorldPos = getWorldPos,
             clampToEdge = true
         };
