@@ -137,13 +137,15 @@ namespace MCGame.Gameplay.Player
 
         private static void ResetAnimator(PlayerController player)
         {
-            // Clean animator reset — clear lingering triggers, then explicitly play Idle
-            // on the base layer. This avoids the "Animator.GotoState: State could not be found"
-            // warning that the previous implementation produced by trying to play "Empty" on
-            // every layer (which most layers don't have).
+            // Clean animator reset across all layers.
+            // For each layer, we attempt to play a default state if it exists.
+            // This avoids the "Animator.GotoState: State could not be found" warning that
+            // happened when the previous implementation tried to play "Empty" on layers
+            // that didn't have it.
             Animator playerAnimator = player.GetComponentInChildren<Animator>();
             if (playerAnimator == null) return;
 
+            // Clear lingering attack/hit/knockout triggers so they don't immediately re-fire.
             playerAnimator.ResetTrigger("Knockout");
             playerAnimator.ResetTrigger("Hit");
             playerAnimator.ResetTrigger("LightPunch");
@@ -151,10 +153,23 @@ namespace MCGame.Gameplay.Player
             playerAnimator.ResetTrigger("HeavyPunch");
             playerAnimator.ResetTrigger("HeavyKick");
 
-            // Play Idle on the base layer (layer 0). Other layers transition naturally.
-            // We do not iterate all layers because not every layer has an "Idle" state,
-            // and our animator transitions handle layer-specific resets organically.
-            playerAnimator.Play("Idle", 0, 0f);
+            // Reset every layer to a known-good state.
+            // Try common default state names in priority order. First match wins.
+            // If no match exists on a layer, the layer keeps its current state (no warning).
+            string[] candidateStates = { "Idle", "Empty" };
+
+            for (int layer = 0; layer < playerAnimator.layerCount; layer++)
+            {
+                foreach (string stateName in candidateStates)
+                {
+                    int stateHash = Animator.StringToHash(stateName);
+                    if (playerAnimator.HasState(layer, stateHash))
+                    {
+                        playerAnimator.Play(stateHash, layer, 0f);
+                        break; // Move to next layer
+                    }
+                }
+            }
         }
 
         private static void ResetCombat(PlayerController player)
