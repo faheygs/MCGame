@@ -13,6 +13,7 @@ namespace MCGame.Core
     /// scene loading, save/load, or any system-specific behavior.
     /// Other systems subscribe to OnStateChanged and react accordingly.
     /// </summary>
+    [DefaultExecutionOrder(-1000)]
     public class GameManager : PersistentSingleton<GameManager>
     {
         // -----------------------------------------------------------------
@@ -48,15 +49,8 @@ namespace MCGame.Core
 
         protected override void OnAwake()
         {
-            // Default startup state. Bootstrapper (A4) will move us to Gameplay.
-            // For now, we transition to Gameplay immediately so existing systems
-            // continue to work without depending on Bootstrapper yet.
             currentState = GameState.Boot;
-            Debug.Log("[GameManager] Initialized in Boot state.");
-
-            // Auto-transition to Gameplay. This is a temporary bridge until A4 (Bootstrapper)
-            // owns the transition out of Boot.
-            TransitionTo(GameState.Gameplay);
+            Debug.Log("[GameManager] Initialized in Boot state. Awaiting Bootstrapper.");
         }
 
         private void Update()

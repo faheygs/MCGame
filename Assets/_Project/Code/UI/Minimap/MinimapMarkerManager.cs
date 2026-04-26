@@ -61,19 +61,46 @@ namespace MCGame.Gameplay.UI
         private MarkerData _waypointMarker;
         private readonly List<MarkerData> _missionMarkers = new();
 
+        // -----------------------------------------------------------------
+        // Lifecycle
+        // -----------------------------------------------------------------
+
         protected override void OnAwake()
         {
             transform.position = Vector3.zero;
         }
 
-        private IEnumerator Start()
+        private void OnEnable()
+        {
+            // Subscribe to Bootstrapper's UI phase signal.
+            // This replaces the previous fragile coroutine that polled for readiness.
+            Bootstrapper.OnUIPhaseReady += Initialize;
+        }
+
+        private void OnDisable()
+        {
+            Bootstrapper.OnUIPhaseReady -= Initialize;
+
+            if (WaypointManager.Instance != null)
+            {
+                WaypointManager.Instance.OnWaypointSet -= OnWaypointSet;
+                WaypointManager.Instance.OnWaypointCleared -= OnWaypointCleared;
+            }
+        }
+
+        /// <summary>
+        /// Explicit initialization, driven by Bootstrapper after the canvas has had
+        /// a layout pass. Guaranteed to run with valid RectTransform sizes.
+        /// </summary>
+        private void Initialize()
         {
             if (thirdPersonCamera == null)
                 thirdPersonCamera = UnityEngine.Camera.main.GetComponent<ThirdPersonCamera>();
 
             if (thirdPersonCamera == null)
             {
-                yield break;
+                Debug.LogError("[MinimapMarkerManager] ThirdPersonCamera not found. Aborting init.");
+                return;
             }
 
             GameObject maskObj = GameObject.Find("MinimapMask");
@@ -81,24 +108,25 @@ namespace MCGame.Gameplay.UI
 
             if (maskObj == null)
             {
-                yield break;
+                Debug.LogError("[MinimapMarkerManager] MinimapMask not found in scene. Aborting init.");
+                return;
             }
 
             if (containerObj == null)
             {
-                yield break;
+                Debug.LogError("[MinimapMarkerManager] MinimapMarkerContainer not found in scene. Aborting init.");
+                return;
             }
 
             _minimapMask = maskObj.GetComponent<RectTransform>();
             _markerContainer = containerObj.GetComponent<RectTransform>();
 
-            yield return null;
-
             CacheMapRadius();
 
             if (_mapRadius <= 0f)
             {
-                yield break;
+                Debug.LogError($"[MinimapMarkerManager] Invalid map radius ({_mapRadius}). Aborting init.");
+                return;
             }
 
             CreatePlayerMarker();
@@ -121,6 +149,8 @@ namespace MCGame.Gameplay.UI
                 WaypointManager.Instance.OnWaypointSet += OnWaypointSet;
                 WaypointManager.Instance.OnWaypointCleared += OnWaypointCleared;
             }
+
+            Debug.Log("[MinimapMarkerManager] Initialized.");
         }
 
         private void CacheMapRadius()
