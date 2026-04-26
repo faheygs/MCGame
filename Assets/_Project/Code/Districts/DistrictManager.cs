@@ -2,12 +2,15 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using MCGame.Core;
+using MCGame.Gameplay.Player;
 
-namespace MCGame.World
+namespace MCGame.Gameplay.World
 {
     /// <summary>
     /// Singleton tracking all registered districts in the loaded scenes.
     /// Notifies subscribers when the player enters or leaves a district.
+    ///
+    /// Lives in MCGame.Gameplay.World because it depends on PlayerService.
     /// </summary>
     public class DistrictManager : Singleton<DistrictManager>
     {
@@ -33,11 +36,9 @@ namespace MCGame.World
             if (autoDiscoverOnStart)
                 DiscoverAllDistricts();
 
-            GameObject playerGO = GameObject.FindWithTag("Player");
-            if (playerGO != null)
-                _player = playerGO.transform;
-            else
-                Debug.LogError("[DistrictManager] No GameObject tagged 'Player' found in scene.");
+            _player = PlayerService.PlayerTransform;
+            if (_player == null)
+                Debug.LogError("[DistrictManager] PlayerService has no registered player. District tracking disabled.");
         }
 
         public void DiscoverAllDistricts()

@@ -1,10 +1,14 @@
 using UnityEngine;
 
-namespace MCGame.World
+namespace MCGame.Gameplay.World
 {
     /// <summary>
     /// Represents a named area of the game world. Each district is a themed zone
     /// (e.g., downtown, industrial, residential) with its own characteristics.
+    ///
+    /// Lives in MCGame.Gameplay.World (not MCGame.World) because it's tightly coupled
+    /// to DistrictManager which depends on PlayerService.
+    /// MCGame.World is reserved for foundational world types (RoadNetwork, SpawnPoint, TriggerVolume).
     /// </summary>
     [RequireComponent(typeof(Collider))]
     public class District : MonoBehaviour

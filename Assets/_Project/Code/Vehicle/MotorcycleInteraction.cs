@@ -1,6 +1,7 @@
 using UnityEngine;
 using MCGame.Core;
 using MCGame.Gameplay.Player;
+using MCGame.Gameplay.Interaction; 
 
 namespace MCGame.Gameplay.Vehicle
 {

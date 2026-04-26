@@ -4,6 +4,7 @@ using MCGame.Core;
 using MCGame.Gameplay.AI;
 using MCGame.Gameplay.Player;
 using MCGame.Gameplay.UI;
+using MCGame.Gameplay.Interaction; 
 
 namespace MCGame.Gameplay.Mission
 {

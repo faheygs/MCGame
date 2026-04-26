@@ -2,9 +2,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.InputSystem;
+using MCGame.Core;
 using MCGame.Input;
+using MCGame.Gameplay.Player;
 
-namespace MCGame.Core
+namespace MCGame.Gameplay.Interaction
 {
     /// <summary>
     /// Central interaction coordinator. Owns the interact prompt, owns the interact input subscription.
@@ -17,6 +19,9 @@ namespace MCGame.Core
     /// prompt is shown; on input, its OnInteract() is called.
     ///
     /// Only the current interactable responds to input. Guarantees one action per button press.
+    ///
+    /// Lives in MCGame.Gameplay.Interaction (not Core) because it depends on PlayerService.
+    /// IInteractable interface stays in MCGame.Core as the foundational contract.
     /// </summary>
     public class InteractionManager : Singleton<InteractionManager>
     {
@@ -31,14 +36,13 @@ namespace MCGame.Core
 
         private void Start()
         {
-            GameObject playerGO = GameObject.FindWithTag("Player");
-            if (playerGO == null)
+            _player = PlayerService.PlayerTransform;
+            if (_player == null)
             {
-                Debug.LogError("[InteractionManager] No GameObject tagged 'Player' in scene.");
+                Debug.LogError("[InteractionManager] PlayerService has no registered player. Interaction system disabled.");
                 enabled = false;
                 return;
             }
-            _player = playerGO.transform;
 
             HidePrompt();
         }
