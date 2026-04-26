@@ -18,9 +18,12 @@ MonoBehaviour:
   _reputation: 0
   _totalReputation: 0
   _reputationToNextRank: 500
-  _health: 100
+  _health: 0
   _maxHealth: 100
   _heatLevel: 0
   _maxHeatLevel: 5
+  _bustStreak: 0
+  _isLayingLow: 0
+  _layLowTimeRemaining: 0
   _currentAmmo: 0
   _maxAmmo: 0
