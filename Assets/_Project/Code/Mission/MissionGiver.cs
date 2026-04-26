@@ -37,7 +37,12 @@ namespace MCGame.Gameplay.Mission
 
         private IEnumerator Start()
         {
-            _player = GameObject.FindWithTag("Player").transform;
+            _player = PlayerService.PlayerTransform;
+            if (_player == null)
+            {
+                Debug.LogError("[MissionGiver] PlayerService has no registered player. Mission giver disabled.", this);
+                yield break;
+            }
 
             yield return new WaitUntil(() =>
                 MinimapMarkerManager.Instance != null &&

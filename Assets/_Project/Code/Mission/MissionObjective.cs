@@ -45,7 +45,11 @@ namespace MCGame.Gameplay.Mission
 
         private void Start()
         {
-            _player = GameObject.FindWithTag("Player").transform;
+            _player = PlayerService.PlayerTransform;
+            if (_player == null)
+            {
+                Debug.LogError("[MissionObjective] PlayerService has no registered player. Objective cannot track distance.", this);
+            }
 
             if (MinimapMarkerManager.Instance != null)
                 _minimapMarkerId = MinimapMarkerManager.Instance.RegisterObjectiveMarker(

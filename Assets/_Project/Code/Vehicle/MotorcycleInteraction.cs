@@ -36,14 +36,13 @@ namespace MCGame.Gameplay.Vehicle
 
         private void Start()
         {
-            GameObject playerGO = GameObject.FindWithTag("Player");
-            if (playerGO == null)
+            _player = PlayerService.PlayerTransform;
+            if (_player == null)
             {
-                Debug.LogError($"[MotorcycleInteraction] No GameObject tagged 'Player' in scene.");
+                Debug.LogError("[MotorcycleInteraction] PlayerService has no registered player. Motorcycle disabled.", this);
                 enabled = false;
                 return;
             }
-            _player = playerGO.transform;
 
             if (motorcycleController != null)
                 motorcycleController.enabled = false;

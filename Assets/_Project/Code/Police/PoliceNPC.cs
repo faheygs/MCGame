@@ -74,15 +74,12 @@ namespace MCGame.Gameplay.Police
 
         private void Start()
         {
-            PlayerController playerController = FindAnyObjectByType<PlayerController>();
-            if (playerController != null)
+            _player = PlayerService.PlayerTransform;
+            _playerHealth = PlayerService.PlayerHealth;
+
+            if (_player == null || _playerHealth == null)
             {
-                _player = playerController.transform;
-                _playerHealth = _player.GetComponent<Health>();
-            }
-            else
-            {
-                Debug.LogError("[PoliceNPC] Cannot find PlayerController. Police AI disabled.", this);
+                Debug.LogError("[PoliceNPC] PlayerService has no registered player or health. Police AI disabled.", this);
                 enabled = false;
                 return;
             }

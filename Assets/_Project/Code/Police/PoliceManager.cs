@@ -94,12 +94,14 @@ namespace MCGame.Gameplay.Police
                 Debug.LogError("[PoliceManager] PlayerDataController not found.", this);
             }
 
-            PlayerController playerController = FindAnyObjectByType<PlayerController>();
-            if (playerController != null)
+            _playerHealth = PlayerService.PlayerHealth;
+            if (_playerHealth != null)
             {
-                _playerHealth = playerController.GetComponent<Health>();
-                if (_playerHealth != null)
-                    _playerHealth.OnDied += HandlePlayerDied;
+                _playerHealth.OnDied += HandlePlayerDied;
+            }
+            else
+            {
+                Debug.LogError("[PoliceManager] PlayerService has no registered player health. Bust system disabled.", this);
             }
         }
 
@@ -377,8 +379,7 @@ namespace MCGame.Gameplay.Police
 
         private Transform FindPlayer()
         {
-            PlayerController player = FindAnyObjectByType<PlayerController>();
-            return player != null ? player.transform : null;
+            return PlayerService.PlayerTransform;
         }
 
         private void CleanupDestroyedPolice()
@@ -510,7 +511,7 @@ namespace MCGame.Gameplay.Police
             // Migration in A5.3c only swaps PlayerStats → PlayerDataController; refactor of responsibility
             // is deferred to keep scope minimal.
 
-            PlayerController player = FindAnyObjectByType<PlayerController>();
+            PlayerController player = PlayerService.Player;
             if (player == null) return;
 
             SpawnPoint[] spawnPoints = FindObjectsByType<SpawnPoint>(FindObjectsInactive.Exclude);

@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 using MCGame.Combat;
+using MCGame.Gameplay.Player;
 
 namespace MCGame.Gameplay.AI
 {
@@ -89,9 +90,12 @@ namespace MCGame.Gameplay.AI
 
         private void Start()
         {
-            GameObject playerGO = GameObject.FindWithTag("Player");
-            if (playerGO != null)
-                _player = playerGO.transform;
+            _player = PlayerService.PlayerTransform;
+            if (_player == null)
+            {
+                Debug.LogError("[EnemyAI] PlayerService has no registered player. Enemy AI disabled.", this);
+                enabled = false;
+            }
         }
 
         private void Update()
