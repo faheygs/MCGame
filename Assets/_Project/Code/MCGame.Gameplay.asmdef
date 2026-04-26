@@ -1,0 +1,21 @@
+{
+    "name": "MCGame.Gameplay",
+    "rootNamespace": "MCGame.Gameplay",
+    "references": [
+        "MCGame.Input",
+        "MCGame.Core",
+        "MCGame.Combat",
+        "MCGame.World",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

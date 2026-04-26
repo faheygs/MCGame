@@ -1,0 +1,16 @@
+{
+    "name": "MCGame.World",
+    "rootNamespace": "MCGame.World",
+    "references": [
+        "MCGame.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
