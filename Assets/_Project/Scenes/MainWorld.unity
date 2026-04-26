@@ -1700,7 +1700,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4821b65f0f669cc4f8e1249faa5e1fd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DebugTools
-  playerStats: {fileID: 11400000, guid: 6c9949683bd333b4f8570a1d74e662f9, type: 2}
 --- !u!4 &376308195
 Transform:
   m_ObjectHideFlags: 0
@@ -2769,7 +2768,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1b4535714bfa7947bccb265735e2163, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CrimeManager
-  playerStats: {fileID: 11400000, guid: 6c9949683bd333b4f8570a1d74e662f9, type: 2}
   witnessDetectionRadius: 20
   witnessLayerMask:
     serializedVersion: 2
@@ -5338,23 +5336,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da750b282f85a784e92ff61c62449c74, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PoliceManager
-  playerStats: {fileID: 11400000, guid: 6c9949683bd333b4f8570a1d74e662f9, type: 2}
   corruptionLevel: 0
   policePrefab: {fileID: 655105082850086232, guid: e26f3eeba45b64841a7a70b739d32482, type: 3}
   maxActivePolice: 6
   minSpawnDistance: 30
   maxPoliceDistance: 80
   reinforcementInterval: 15
-  layLowDurations:
-  - 120
-  - 300
-  - 600
-  moneyPenalties:
-  - 0.15
-  - 0.3
-  - 0.5
-  repPenalties: 32000000960000002c010000
-  bustStreakDecayTime: 1200
 --- !u!1 &1192688665
 GameObject:
   m_ObjectHideFlags: 0
@@ -5424,6 +5411,11 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 200, y: 20, z: 200}
   m_Center: {x: 0, y: 5, z: 0}
+--- !u!1 &1215703302 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6770006369972330859, guid: 9b216158834828d4cbd5c1813c3958b9, type: 3}
+  m_PrefabInstance: {fileID: 6848557921231394468}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1237993389 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2811907028645729392, guid: b8d37ff761e2c8e46b2efe31976dd4a2, type: 3}
@@ -6924,6 +6916,18 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2444980374173395037, guid: 9b216158834828d4cbd5c1813c3958b9, type: 3}
   m_PrefabInstance: {fileID: 6848557921231394468}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1377462155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1215703302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 040e7976f99a9ef4d896605a247f8f63, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MCGame.Gameplay::MCGame.Gameplay.Player.PlayerRegistration
 --- !u!1001 &1471278820
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8143,7 +8147,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a4ea92c0209c5474a9614fea1f190682, type: 2}
   - {fileID: 11400000, guid: 22592571654a2bc41b47750dfac8cf93, type: 2}
   missionObjectivePrefab: {fileID: 7591482124594185060, guid: 16ef95ed5efb9494a979a38012113f04, type: 3}
-  playerStats: {fileID: 11400000, guid: 6c9949683bd333b4f8570a1d74e662f9, type: 2}
 --- !u!4 &1885163530
 Transform:
   m_ObjectHideFlags: 0
@@ -8471,7 +8474,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HUDLayLowTimer
   layLowText: {fileID: 536550830}
-  playerStats: {fileID: 11400000, guid: 6c9949683bd333b4f8570a1d74e662f9, type: 2}
   backInBusinessDisplayTime: 3
 --- !u!114 &2091161852 stripped
 MonoBehaviour:
@@ -8979,7 +8981,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6770006369972330859, guid: 9b216158834828d4cbd5c1813c3958b9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1377462155}
   m_SourcePrefab: {fileID: 100100000, guid: 9b216158834828d4cbd5c1813c3958b9, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
