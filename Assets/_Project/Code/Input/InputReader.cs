@@ -11,7 +11,6 @@ namespace MCGame.Input
         public bool SprintInput { get; private set; }
         public bool InteractInput { get; private set; }
 
-        // One-shot events — fire once on button press (rising edge)
         public event System.Action InteractPressed;
         public event System.Action LightAttackPressed;
         public event System.Action HeavyAttackPressed;

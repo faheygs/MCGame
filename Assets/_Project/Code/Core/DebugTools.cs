@@ -10,6 +10,8 @@ namespace MCGame.Core
 
         private void Update()
         {
+            // --- PlayerStats debug keys ---
+
             if (Keyboard.current.digit1Key.wasPressedThisFrame)
                 playerStats.AddHeat(1);
 
@@ -27,6 +29,26 @@ namespace MCGame.Core
 
             if (Keyboard.current.digit6Key.wasPressedThisFrame)
                 playerStats.Heal(10f);
+
+            // --- GameManager debug keys ---
+
+            if (Keyboard.current.gKey.wasPressedThisFrame)
+            {
+                if (GameManager.Instance != null)
+                {
+                    Debug.Log("[DebugTools] G pressed — triggering GameOver.");
+                    GameManager.Instance.TriggerGameOver();
+                }
+            }
+
+            if (Keyboard.current.hKey.wasPressedThisFrame)
+            {
+                if (GameManager.Instance != null)
+                {
+                    Debug.Log("[DebugTools] H pressed — returning to Gameplay.");
+                    GameManager.Instance.ReturnToGameplay();
+                }
+            }
         }
     }
 }

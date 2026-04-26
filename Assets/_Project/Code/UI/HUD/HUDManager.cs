@@ -23,7 +23,50 @@ namespace MCGame.Gameplay.UI
         [Header("Data")]
         [SerializeField] private PlayerStats playerStats;
 
-        // --- Mission ---
+        // -----------------------------------------------------------------
+        // Lifecycle
+        // -----------------------------------------------------------------
+
+        private void OnEnable()
+        {
+            // GameManager may not exist on first OnEnable in some startup orders.
+            // We try here, and Start() will catch it if not.
+            TrySubscribeToGameManager();
+        }
+
+        private void Start()
+        {
+            // Belt-and-suspenders subscription in case OnEnable ran before GameManager Awake.
+            TrySubscribeToGameManager();
+        }
+
+        private void OnDisable()
+        {
+            if (GameManager.Instance != null)
+                GameManager.Instance.OnStateChanged -= HandleGameStateChanged;
+        }
+
+        private bool _subscribed;
+
+        private void TrySubscribeToGameManager()
+        {
+            if (_subscribed) return;
+            if (GameManager.Instance == null) return;
+
+            GameManager.Instance.OnStateChanged += HandleGameStateChanged;
+            _subscribed = true;
+        }
+
+        private void HandleGameStateChanged(GameState previous, GameState current)
+        {
+            // Smoke test for A3.3 — verifies HUD receives state change events.
+            // Future: pause UI overlay, death screen UI, etc. will react here.
+            Debug.Log($"[HUDManager] Game state changed: {previous} → {current}");
+        }
+
+        // -----------------------------------------------------------------
+        // Mission
+        // -----------------------------------------------------------------
 
         public void OnMissionStarted(MissionData mission)
         {
