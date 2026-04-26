@@ -1,6 +1,5 @@
 using UnityEngine;
-using System.Collections;
-using MCGame.Core;
+using MCGame.Gameplay.Player;
 
 namespace MCGame.Gameplay.UI
 {
@@ -16,12 +15,10 @@ namespace MCGame.Gameplay.UI
         [SerializeField] private Color normalColor = new Color(0.753f, 0.224f, 0.169f);
         [SerializeField] private Color pulseColor = new Color(1f, 0.1f, 0.1f);
 
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         private UnityEngine.UI.Image _hpBarImage;
         private bool _isCritical;
         private float _pulseTimer;
+        private bool _subscribed;
 
         private void Awake()
         {
@@ -30,17 +27,30 @@ namespace MCGame.Gameplay.UI
 
         private void OnEnable()
         {
-            playerStats.OnHealthChanged += HandleHealthChanged;
+            TrySubscribe();
         }
 
         private void OnDisable()
         {
-            playerStats.OnHealthChanged -= HandleHealthChanged;
+            if (PlayerDataController.Instance != null)
+                PlayerDataController.Instance.OnHealthChanged -= HandleHealthChanged;
+            _subscribed = false;
         }
 
         private void Start()
         {
-            UpdateBar(playerStats.Health);
+            TrySubscribe();
+            if (PlayerDataController.Instance != null)
+                UpdateBar(PlayerDataController.Instance.Health);
+        }
+
+        private void TrySubscribe()
+        {
+            if (_subscribed) return;
+            if (PlayerDataController.Instance == null) return;
+
+            PlayerDataController.Instance.OnHealthChanged += HandleHealthChanged;
+            _subscribed = true;
         }
 
         private void Update()
@@ -51,8 +61,10 @@ namespace MCGame.Gameplay.UI
 
         private void HandleHealthChanged(float newHealth)
         {
+            if (PlayerDataController.Instance == null) return;
+
             UpdateBar(newHealth);
-            _isCritical = (newHealth / playerStats.MaxHealth) <= criticalHealthThreshold;
+            _isCritical = (newHealth / PlayerDataController.Instance.MaxHealth) <= criticalHealthThreshold;
 
             if (!_isCritical)
                 _hpBarImage.color = normalColor;
@@ -60,7 +72,9 @@ namespace MCGame.Gameplay.UI
 
         private void UpdateBar(float health)
         {
-            float fill = Mathf.Clamp01(health / playerStats.MaxHealth);
+            if (PlayerDataController.Instance == null) return;
+
+            float fill = Mathf.Clamp01(health / PlayerDataController.Instance.MaxHealth);
             hpBarFill.anchorMin = new Vector2(0, 0);
             hpBarFill.anchorMax = new Vector2(fill, 1);
             hpBarFill.offsetMin = Vector2.zero;

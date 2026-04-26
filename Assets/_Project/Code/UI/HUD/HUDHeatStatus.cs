@@ -1,7 +1,7 @@
 using UnityEngine;
 using TMPro;
 using System.Collections;
-using MCGame.Core;
+using MCGame.Gameplay.Player;
 
 namespace MCGame.Gameplay.UI
 {
@@ -15,31 +15,44 @@ namespace MCGame.Gameplay.UI
         [SerializeField] private float displayDuration = 2f;
         [SerializeField] private float fadeDuration = 0.5f;
 
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         private Coroutine _displayCoroutine;
         private int _previousHeatLevel;
+        private bool _subscribed;
 
         private void OnEnable()
         {
-            playerStats.OnHeatChanged += HandleHeatChanged;
+            TrySubscribe();
         }
 
         private void OnDisable()
         {
-            playerStats.OnHeatChanged -= HandleHeatChanged;
+            if (PlayerDataController.Instance != null)
+                PlayerDataController.Instance.OnHeatChanged -= HandleHeatChanged;
+            _subscribed = false;
         }
 
         private void Start()
         {
+            TrySubscribe();
             heatStatusText.alpha = 0f;
-            _previousHeatLevel = playerStats.HeatLevel;
+            if (PlayerDataController.Instance != null)
+                _previousHeatLevel = PlayerDataController.Instance.HeatLevel;
+        }
+
+        private void TrySubscribe()
+        {
+            if (_subscribed) return;
+            if (PlayerDataController.Instance == null) return;
+
+            PlayerDataController.Instance.OnHeatChanged += HandleHeatChanged;
+            _subscribed = true;
         }
 
         private void HandleHeatChanged(int newLevel)
         {
-            if (newLevel == playerStats.MaxHeatLevel)
+            if (PlayerDataController.Instance == null) return;
+
+            if (newLevel == PlayerDataController.Instance.MaxHeatLevel)
             {
                 ShowPersistent("MAX HEAT");
             }
@@ -101,7 +114,8 @@ namespace MCGame.Gameplay.UI
 
         private IEnumerator WaitForHeatDrop()
         {
-            while (playerStats.HeatLevel >= playerStats.MaxHeatLevel)
+            while (PlayerDataController.Instance != null &&
+                   PlayerDataController.Instance.HeatLevel >= PlayerDataController.Instance.MaxHeatLevel)
                 yield return null;
 
             float elapsed = 0f;

@@ -1,6 +1,6 @@
 using UnityEngine;
 using TMPro;
-using MCGame.Core;
+using MCGame.Gameplay.Player;
 
 namespace MCGame.Gameplay.UI
 {
@@ -12,38 +12,45 @@ namespace MCGame.Gameplay.UI
         [Header("References")]
         [SerializeField] private TextMeshProUGUI layLowText;
 
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         [Header("Settings")]
         [SerializeField] private float backInBusinessDisplayTime = 3f;
 
         private Coroutine _backInBusinessCoroutine;
+        private bool _subscribed;
 
         private void OnEnable()
         {
-            if (playerStats != null)
-            {
-                playerStats.OnLayLowChanged += HandleLayLowChanged;
-                playerStats.OnLayLowTimerUpdated += HandleTimerUpdated;
-            }
+            TrySubscribe();
         }
 
         private void OnDisable()
         {
-            if (playerStats != null)
+            if (PlayerDataController.Instance != null)
             {
-                playerStats.OnLayLowChanged -= HandleLayLowChanged;
-                playerStats.OnLayLowTimerUpdated -= HandleTimerUpdated;
+                PlayerDataController.Instance.OnLayLowChanged -= HandleLayLowChanged;
+                PlayerDataController.Instance.OnLayLowTimerUpdated -= HandleTimerUpdated;
             }
+            _subscribed = false;
         }
 
         private void Start()
         {
+            TrySubscribe();
+
             if (layLowText != null)
             {
                 layLowText.gameObject.SetActive(false);
             }
+        }
+
+        private void TrySubscribe()
+        {
+            if (_subscribed) return;
+            if (PlayerDataController.Instance == null) return;
+
+            PlayerDataController.Instance.OnLayLowChanged += HandleLayLowChanged;
+            PlayerDataController.Instance.OnLayLowTimerUpdated += HandleTimerUpdated;
+            _subscribed = true;
         }
 
         private void HandleLayLowChanged(bool isLayingLow)

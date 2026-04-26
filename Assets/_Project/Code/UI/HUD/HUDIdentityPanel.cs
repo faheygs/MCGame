@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
-using MCGame.Core;
+using MCGame.Gameplay.Player;
 
 namespace MCGame.Gameplay.UI
 {
@@ -17,36 +17,51 @@ namespace MCGame.Gameplay.UI
         [Header("Settings")]
         [SerializeField] private float moneyAnimDuration = 0.5f;
 
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         private int _displayedMoney;
         private Coroutine _moneyAnimCoroutine;
+        private bool _subscribed;
 
         private void OnEnable()
         {
-            playerStats.OnMoneyChanged += HandleMoneyChanged;
-            playerStats.OnReputationChanged += HandleReputationChanged;
-            playerStats.OnRankChanged += HandleRankChanged;
+            TrySubscribe();
         }
 
         private void OnDisable()
         {
-            playerStats.OnMoneyChanged -= HandleMoneyChanged;
-            playerStats.OnReputationChanged -= HandleReputationChanged;
-            playerStats.OnRankChanged -= HandleRankChanged;
+            if (PlayerDataController.Instance != null)
+            {
+                PlayerDataController.Instance.OnMoneyChanged -= HandleMoneyChanged;
+                PlayerDataController.Instance.OnReputationChanged -= HandleReputationChanged;
+                PlayerDataController.Instance.OnRankChanged -= HandleRankChanged;
+            }
+            _subscribed = false;
         }
 
         private void Start()
         {
+            // Belt-and-suspenders subscription in case OnEnable ran before PlayerDataController Awake.
+            TrySubscribe();
             RefreshAll();
+        }
+
+        private void TrySubscribe()
+        {
+            if (_subscribed) return;
+            if (PlayerDataController.Instance == null) return;
+
+            PlayerDataController.Instance.OnMoneyChanged += HandleMoneyChanged;
+            PlayerDataController.Instance.OnReputationChanged += HandleReputationChanged;
+            PlayerDataController.Instance.OnRankChanged += HandleRankChanged;
+            _subscribed = true;
         }
 
         private void RefreshAll()
         {
-            _displayedMoney = playerStats.Money;
-            moneyText.text = FormatMoney(playerStats.Money);
-            rankText.text = playerStats.clubRank.ToUpper();
+            if (PlayerDataController.Instance == null) return;
+
+            _displayedMoney = PlayerDataController.Instance.Money;
+            moneyText.text = FormatMoney(PlayerDataController.Instance.Money);
+            rankText.text = PlayerDataController.Instance.CurrentRankDisplayName.ToUpper();
             LayoutRebuilder.ForceRebuildLayoutImmediate(rankText.rectTransform);
             UpdateRepBar();
         }
@@ -89,16 +104,20 @@ namespace MCGame.Gameplay.UI
 
         private void UpdateRepBar()
         {
-            float fill = Mathf.Clamp01((float)playerStats.Reputation / playerStats.ReputationToNextRank);
+            if (PlayerDataController.Instance == null) return;
+
+            float fill = Mathf.Clamp01((float)PlayerDataController.Instance.Reputation / PlayerDataController.Instance.ReputationToNextRank);
             repBarFill.anchorMin = new Vector2(0, 0);
             repBarFill.anchorMax = new Vector2(fill, 1);
             repBarFill.offsetMin = Vector2.zero;
             repBarFill.offsetMax = Vector2.zero;
         }
 
-        private void HandleRankChanged(string newRank)
+        private void HandleRankChanged(ClubRank newRank)
         {
-            rankText.text = newRank.ToUpper();
+            if (PlayerDataController.Instance == null) return;
+
+            rankText.text = PlayerDataController.Instance.CurrentRankDisplayName.ToUpper();
             LayoutRebuilder.ForceRebuildLayoutImmediate(rankText.rectTransform);
         }
     }

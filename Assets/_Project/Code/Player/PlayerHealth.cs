@@ -1,5 +1,4 @@
 using UnityEngine;
-using MCGame.Core;
 using MCGame.Combat;
 using MCGame.Gameplay.Mission;
 using MCGame.Gameplay.UI;
@@ -7,16 +6,13 @@ using MCGame.Gameplay.UI;
 namespace MCGame.Gameplay.Player
 {
     /// <summary>
-    /// Bridges the Health component on the player to PlayerStats.
+    /// Bridges the Health component on the player to PlayerDataController.
     /// When the player takes damage via Health.TakeDamage(), this updates
-    /// PlayerStats so the HUD health bar responds automatically.
+    /// PlayerData so the HUD health bar responds automatically.
     /// </summary>
     [RequireComponent(typeof(Health))]
     public class PlayerHealth : MonoBehaviour
     {
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         private Health _health;
 
         private void Awake()
@@ -38,14 +34,15 @@ namespace MCGame.Gameplay.Player
 
         private void HandleDamaged(DamageInfo info)
         {
-            if (playerStats == null) return;
+            if (PlayerDataController.Instance == null) return;
 
+            float maxHealth = PlayerDataController.Instance.MaxHealth;
             float healthPercent = (float)_health.CurrentHP / _health.MaxHP;
-            float targetHealth = healthPercent * playerStats.MaxHealth;
-            float damage = playerStats.Health - targetHealth;
+            float targetHealth = healthPercent * maxHealth;
+            float damage = PlayerDataController.Instance.Health - targetHealth;
 
             if (damage > 0)
-                playerStats.TakeDamage(damage);
+                PlayerDataController.Instance.TakeDamage(damage);
         }
 
         private void HandleDied()
@@ -66,8 +63,8 @@ namespace MCGame.Gameplay.Player
         {
             _health.Reset();
 
-            if (playerStats != null)
-                playerStats.Heal(playerStats.MaxHealth);
+            if (PlayerDataController.Instance != null)
+                PlayerDataController.Instance.HealToFull();
 
             var controller = GetComponent<PlayerController>();
             if (controller != null) controller.enabled = true;

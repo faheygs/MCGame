@@ -1,34 +1,39 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using MCGame.Core;
+using MCGame.Gameplay.Player;
 
-namespace MCGame.Core
+namespace MCGame.Gameplay
 {
+    /// <summary>
+    /// Editor/debug-time hotkeys for quickly manipulating player state during testing.
+    /// Lives in Gameplay assembly because it depends on PlayerDataController (gameplay-side).
+    /// </summary>
     public class DebugTools : MonoBehaviour
     {
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         private void Update()
         {
-            // --- PlayerStats debug keys ---
+            if (PlayerDataController.Instance == null) return;
+
+            // --- PlayerData debug keys ---
 
             if (Keyboard.current.digit1Key.wasPressedThisFrame)
-                playerStats.AddHeat(1);
+                PlayerDataController.Instance.AddHeat(1);
 
             if (Keyboard.current.digit2Key.wasPressedThisFrame)
-                playerStats.RemoveHeat(1);
+                PlayerDataController.Instance.RemoveHeat(1);
 
             if (Keyboard.current.digit3Key.wasPressedThisFrame)
-                playerStats.AddMoney(500);
+                PlayerDataController.Instance.AddMoney(500);
 
             if (Keyboard.current.digit4Key.wasPressedThisFrame)
-                playerStats.AddReputation(50);
+                PlayerDataController.Instance.AddReputation(50);
 
             if (Keyboard.current.digit5Key.wasPressedThisFrame)
-                playerStats.TakeDamage(10f);
+                PlayerDataController.Instance.TakeDamage(10f);
 
             if (Keyboard.current.digit6Key.wasPressedThisFrame)
-                playerStats.Heal(10f);
+                PlayerDataController.Instance.Heal(10f);
 
             // --- GameManager debug keys ---
 

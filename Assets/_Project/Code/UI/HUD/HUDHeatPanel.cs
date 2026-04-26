@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-using MCGame.Core;
+using MCGame.Gameplay.Player;
 
 namespace MCGame.Gameplay.UI
 {
@@ -21,33 +21,45 @@ namespace MCGame.Gameplay.UI
         [SerializeField] private float pulseSpeedMax = 5f;
         [SerializeField] private float borderFadeSpeed = 1.5f;
 
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         private Coroutine _borderCoroutine;
         private float _currentPulseSpeed;
         private float _targetFill;
         private bool _isPulsing;
+        private bool _subscribed;
 
         private void OnEnable()
         {
-            playerStats.OnHeatChanged += HandleHeatChanged;
+            TrySubscribe();
         }
 
         private void OnDisable()
         {
-            playerStats.OnHeatChanged -= HandleHeatChanged;
+            if (PlayerDataController.Instance != null)
+                PlayerDataController.Instance.OnHeatChanged -= HandleHeatChanged;
+            _subscribed = false;
         }
 
         private void Start()
         {
+            TrySubscribe();
             _currentPulseSpeed = pulseSpeedMin;
             minimapBorder.color = baseColor;
         }
 
+        private void TrySubscribe()
+        {
+            if (_subscribed) return;
+            if (PlayerDataController.Instance == null) return;
+
+            PlayerDataController.Instance.OnHeatChanged += HandleHeatChanged;
+            _subscribed = true;
+        }
+
         private void HandleHeatChanged(int newLevel)
         {
-            _targetFill = Mathf.Clamp01((float)newLevel / playerStats.MaxHeatLevel);
+            if (PlayerDataController.Instance == null) return;
+
+            _targetFill = Mathf.Clamp01((float)newLevel / PlayerDataController.Instance.MaxHeatLevel);
             _currentPulseSpeed = Mathf.Lerp(pulseSpeedMin, pulseSpeedMax, _targetFill);
 
             if (newLevel >= pulseThreshold)
