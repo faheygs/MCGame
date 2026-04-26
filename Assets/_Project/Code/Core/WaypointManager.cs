@@ -8,28 +8,16 @@ namespace MCGame.Core
     /// Set by FullMapController (player-placed) or MissionManager (auto-set on mission start).
     /// Cleared by MissionManager on complete/fail, or by player removing the pin on the map.
     /// </summary>
-    public class WaypointManager : MonoBehaviour
+    public class WaypointManager : Singleton<WaypointManager>
     {
         [SerializeField] private Transform playerTransform;
         [SerializeField] private float arrivalRadius = 5f;
 
-        public static WaypointManager Instance { get; private set; }
         public Vector3 WaypointPosition { get; private set; }
         public bool HasWaypoint { get; private set; }
 
         public event Action<Vector3> OnWaypointSet;
         public event Action OnWaypointCleared;
-
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
-        }
-
         private void Update()
         {
             if (!HasWaypoint) return;

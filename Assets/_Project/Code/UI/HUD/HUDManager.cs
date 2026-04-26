@@ -7,10 +7,8 @@ namespace MCGame.Gameplay.UI
     // HUDManager is the single entry point for all HUD operations.
     // All game systems call HUDManager — never touch panel scripts directly.
 
-    public class HUDManager : MonoBehaviour
+    public class HUDManager : Singleton<HUDManager>
     {
-        public static HUDManager Instance { get; private set; }
-
         [Header("Panels")]
         [SerializeField] private HUDMissionPanel missionPanel;
         [SerializeField] private HUDIdentityPanel identityPanel;
@@ -24,16 +22,6 @@ namespace MCGame.Gameplay.UI
 
         [Header("Data")]
         [SerializeField] private PlayerStats playerStats;
-
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
-        }
 
         // --- Mission ---
 

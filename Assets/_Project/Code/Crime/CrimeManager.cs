@@ -7,10 +7,8 @@ namespace MCGame.Gameplay.Crime
     /// <summary>
     /// Central manager for the crime detection pipeline.
     /// </summary>
-    public class CrimeManager : MonoBehaviour
+    public class CrimeManager : Singleton<CrimeManager>
     {
-        public static CrimeManager Instance { get; private set; }
-
         [Header("Data")]
         [SerializeField] private PlayerStats playerStats;
 
@@ -32,25 +30,6 @@ namespace MCGame.Gameplay.Crime
         public LayerMask WitnessLayerMask => witnessLayerMask;
         public LayerMask ObstructionLayerMask => obstructionLayerMask;
         public PlayerStats PlayerStats => playerStats;
-
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Debug.LogWarning("[CrimeManager] Duplicate instance detected. Destroying this one.", this);
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this)
-            {
-                Instance = null;
-            }
-        }
 
         private void Start()
         {

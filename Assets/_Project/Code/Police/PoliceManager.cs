@@ -13,10 +13,8 @@ namespace MCGame.Gameplay.Police
     /// <summary>
     /// Manages law enforcement response to criminal activity.
     /// </summary>
-    public class PoliceManager : MonoBehaviour
+    public class PoliceManager : Singleton<PoliceManager>
     {
-        public static PoliceManager Instance { get; private set; }
-
         [Header("Data")]
         [SerializeField] private PlayerStats playerStats;
 
@@ -67,18 +65,6 @@ namespace MCGame.Gameplay.Police
 
         public int CorruptionLevel => corruptionLevel;
         public int ActivePoliceCount => _activePolice.Count;
-
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Debug.LogWarning("[PoliceManager] Duplicate instance detected. Destroying this one.", this);
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
-        }
-
         private void OnEnable()
         {
             if (CrimeManager.Instance != null)
@@ -135,14 +121,6 @@ namespace MCGame.Gameplay.Police
                 {
                     _playerHealth.OnDied += HandlePlayerDied;
                 }
-            }
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this)
-            {
-                Instance = null;
             }
         }
 

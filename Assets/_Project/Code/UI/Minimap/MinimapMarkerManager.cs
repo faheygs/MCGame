@@ -7,10 +7,8 @@ using MCGame.Gameplay.Camera;
 
 namespace MCGame.Gameplay.UI
 {
-    public class MinimapMarkerManager : MonoBehaviour
+    public class MinimapMarkerManager : Singleton<MinimapMarkerManager>
     {
-        public static MinimapMarkerManager Instance { get; private set; }
-
         [Header("Camera")]
         [SerializeField] private ThirdPersonCamera thirdPersonCamera;
         [SerializeField] private float orthographicSize = 20f;
@@ -63,14 +61,8 @@ namespace MCGame.Gameplay.UI
         private MarkerData _waypointMarker;
         private readonly List<MarkerData> _missionMarkers = new();
 
-        private void Awake()
+        protected override void OnAwake()
         {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
             transform.position = Vector3.zero;
         }
 

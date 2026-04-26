@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using MCGame.Core;
 
 namespace MCGame.World
 {
@@ -8,10 +9,8 @@ namespace MCGame.World
     /// Singleton tracking all registered districts in the loaded scenes.
     /// Notifies subscribers when the player enters or leaves a district.
     /// </summary>
-    public class DistrictManager : MonoBehaviour
+    public class DistrictManager : Singleton<DistrictManager>
     {
-        public static DistrictManager Instance { get; private set; }
-
         private readonly List<District> _registeredDistricts = new List<District>();
 
         [Header("Auto-Discovery")]
@@ -28,22 +27,6 @@ namespace MCGame.World
         public District CurrentDistrict => _currentPlayerDistrict;
 
         public event Action<District, District> OnDistrictChanged;
-
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Debug.LogWarning($"[DistrictManager] Duplicate instance on {name}. Destroying.");
-                Destroy(this);
-                return;
-            }
-            Instance = this;
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this) Instance = null;
-        }
 
         private void Start()
         {

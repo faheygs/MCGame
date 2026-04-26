@@ -18,10 +18,8 @@ namespace MCGame.Core
     ///
     /// Only the current interactable responds to input. Guarantees one action per button press.
     /// </summary>
-    public class InteractionManager : MonoBehaviour
+    public class InteractionManager : Singleton<InteractionManager>
     {
-        public static InteractionManager Instance { get; private set; }
-
         [Header("References")]
         [SerializeField] private InputReader inputReader;
         [Tooltip("TMP text used for the interact prompt. Usually the same one UIManager uses.")]
@@ -30,22 +28,6 @@ namespace MCGame.Core
         private readonly List<IInteractable> _registered = new List<IInteractable>();
         private IInteractable _currentInteractable;
         private Transform _player;
-
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Debug.LogWarning($"[InteractionManager] Duplicate instance on {name}. Destroying this one.");
-                Destroy(this);
-                return;
-            }
-            Instance = this;
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this) Instance = null;
-        }
 
         private void Start()
         {

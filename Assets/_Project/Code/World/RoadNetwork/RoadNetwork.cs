@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using MCGame.Core;
 
 namespace MCGame.World
 {
@@ -7,10 +8,8 @@ namespace MCGame.World
     /// Singleton managing all RoadNodes in the loaded scenes.
     /// Supports nearest-node lookup and A* pathfinding across the road graph.
     /// </summary>
-    public class RoadNetwork : MonoBehaviour
+    public class RoadNetwork : Singleton<RoadNetwork>
     {
-        public static RoadNetwork Instance { get; private set; }
-
         [Header("Auto-Discovery")]
         [Tooltip("If true, scans the scene for all RoadNodes on Start. Disable if registering manually.")]
         [SerializeField] private bool autoDiscoverOnStart = true;
@@ -18,22 +17,6 @@ namespace MCGame.World
         private readonly List<RoadNode> _nodes = new List<RoadNode>();
 
         public IReadOnlyList<RoadNode> Nodes => _nodes;
-
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Debug.LogWarning($"[RoadNetwork] Duplicate instance on {name}. Destroying.");
-                Destroy(this);
-                return;
-            }
-            Instance = this;
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this) Instance = null;
-        }
 
         private void Start()
         {

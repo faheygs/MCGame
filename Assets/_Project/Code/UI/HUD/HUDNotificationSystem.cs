@@ -1,13 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
+using MCGame.Core;
 
 namespace MCGame.Gameplay.UI
 {
     // HUDNotificationSystem manages the notification stack.
-    public class HUDNotificationSystem : MonoBehaviour
+    public class HUDNotificationSystem : Singleton<HUDNotificationSystem>
     {
-        public static HUDNotificationSystem Instance { get; private set; }
-
         [Header("References")]
         [SerializeField] private RectTransform notificationStack;
         [SerializeField] private HUDNotification notificationPrefab;
@@ -21,16 +20,6 @@ namespace MCGame.Gameplay.UI
         [SerializeField] private Color successAccentColor = new Color(0.18f, 0.8f, 0.44f);
 
         private List<HUDNotification> _activeNotifications = new List<HUDNotification>();
-
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
-        }
 
         public void ShowNotification(string message)
         {

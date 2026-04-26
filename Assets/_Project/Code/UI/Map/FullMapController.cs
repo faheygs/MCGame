@@ -11,10 +11,8 @@ namespace MCGame.Gameplay.UI
     /// <summary>
     /// Fullscreen map overlay. Opens/closes with M.
     /// </summary>
-    public class FullMapController : MonoBehaviour
+    public class FullMapController : Singleton<FullMapController>
     {
-        public static FullMapController Instance { get; private set; }
-
         [Header("UI References")]
         [SerializeField] private GameObject mapOverlay;
         [SerializeField] private RectTransform mapImage;
@@ -64,14 +62,8 @@ namespace MCGame.Gameplay.UI
         private List<MissionPin> _missionPins = new();
         private MissionPin _selectedMissionPin = null;
 
-        private void Awake()
+        protected override void OnAwake()
         {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
             mapOverlay.SetActive(false);
         }
 

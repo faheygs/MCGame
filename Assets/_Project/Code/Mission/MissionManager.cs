@@ -11,10 +11,8 @@ namespace MCGame.Gameplay.Mission
     /// Tracks active mission, spawns objectives, applies rewards/costs,
     /// handles unlock chains with optional delays.
     /// </summary>
-    public class MissionManager : MonoBehaviour
+    public class MissionManager : Singleton<MissionManager>
     {
-        public static MissionManager Instance { get; private set; }
-
         [Header("Missions")]
         [SerializeField] private MissionData[] allMissions;
 
@@ -31,15 +29,8 @@ namespace MCGame.Gameplay.Mission
         public MissionData CurrentMission => _currentMission;
         public bool IsMissionActive => _currentMission != null;
 
-        private void Awake()
+        protected override void OnAwake()
         {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
-
             InitializeMissions();
         }
 

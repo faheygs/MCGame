@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using MCGame.Core;
 
 namespace MCGame.Gameplay.Player
 {
@@ -8,15 +9,13 @@ namespace MCGame.Gameplay.Player
     /// Single entry point for all state changes — nothing else should directly enable
     /// or disable PlayerController / MotorcycleController.
     /// </summary>
-    public class PlayerStateManager : MonoBehaviour
+    public class PlayerStateManager : Singleton<PlayerStateManager>
     {
         public enum PlayerState
         {
             OnFoot,
             InVehicle
         }
-
-        public static PlayerStateManager Instance { get; private set; }
 
         [Header("Player Components")]
         [SerializeField] private PlayerController playerController;
@@ -39,27 +38,13 @@ namespace MCGame.Gameplay.Player
 
         public event Action<PlayerState> OnStateChanged;
 
-        private void Awake()
+        protected override void OnAwake()
         {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(this);
-                return;
-            }
-
-            Instance = this;
-
             if (playerController == null)
                 playerController = GetComponent<PlayerController>();
 
             if (characterController == null)
                 characterController = GetComponent<CharacterController>();
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this)
-                Instance = null;
         }
 
         public void EnterVehicle(MonoBehaviour vehicle, Transform seatPosition)
