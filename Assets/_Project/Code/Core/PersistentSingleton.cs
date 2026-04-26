@@ -14,6 +14,15 @@ namespace MCGame.Core
     ///
     /// Do NOT use for managers scoped to a single gameplay scene
     ///   - MissionManager, HUDManager, PoliceManager, etc. should remain Singleton&lt;T&gt;.
+    ///
+    /// Note on hierarchy: Unity requires DontDestroyOnLoad targets to be root-level
+    /// GameObjects. To keep editor-time visual organization (e.g., living under a
+    /// "--- BOOT ---" group), this base class automatically detaches the GameObject
+    /// from its parent at runtime before calling DontDestroyOnLoad. This means:
+    ///   - In edit mode: GameObject lives where you placed it (e.g., under BOOT group)
+    ///   - In play mode: GameObject is automatically moved to scene root, then to
+    ///                   the DontDestroyOnLoad scene.
+    /// This is intentional and is the cleanest way to keep both organization and persistence.
     /// </summary>
     public abstract class PersistentSingleton<T> : MonoBehaviour where T : PersistentSingleton<T>
     {
@@ -32,6 +41,15 @@ namespace MCGame.Core
             }
 
             Instance = (T)this;
+
+            // Unity requires DontDestroyOnLoad targets to be root-level GameObjects.
+            // If we have a parent (e.g., we live under "--- BOOT ---" for organization),
+            // detach to root before persisting.
+            if (transform.parent != null)
+            {
+                transform.SetParent(null);
+            }
+
             DontDestroyOnLoad(gameObject);
             OnAwake();
         }
