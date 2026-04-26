@@ -1,80 +1,76 @@
 using UnityEngine;
 using MCGame.Core;
 using MCGame.Combat;
+using MCGame.Gameplay.Mission;
+using MCGame.Gameplay.UI;
 
-/// <summary>
-/// Bridges the Health component on the player to PlayerStats.
-/// When the player takes damage via Health.TakeDamage(), this updates
-/// PlayerStats so the HUD health bar responds automatically.
-///
-/// Also handles player death: triggers mission failure and disables movement.
-/// </summary>
-[RequireComponent(typeof(Health))]
-public class PlayerHealth : MonoBehaviour
+namespace MCGame.Gameplay.Player
 {
-    [Header("Data")]
-    [SerializeField] private PlayerStats playerStats;
-
-    private Health _health;
-
-    private void Awake()
+    /// <summary>
+    /// Bridges the Health component on the player to PlayerStats.
+    /// When the player takes damage via Health.TakeDamage(), this updates
+    /// PlayerStats so the HUD health bar responds automatically.
+    /// </summary>
+    [RequireComponent(typeof(Health))]
+    public class PlayerHealth : MonoBehaviour
     {
-        _health = GetComponent<Health>();
-    }
+        [Header("Data")]
+        [SerializeField] private PlayerStats playerStats;
 
-    private void OnEnable()
-    {
-        _health.OnDamaged += HandleDamaged;
-        _health.OnDied += HandleDied;
-    }
+        private Health _health;
 
-    private void OnDisable()
-    {
-        _health.OnDamaged -= HandleDamaged;
-        _health.OnDied -= HandleDied;
-    }
-
-    private void HandleDamaged(DamageInfo info)
-    {
-        if (playerStats == null) return;
-
-        // Sync Health component's HP to PlayerStats so HUD updates
-        float healthPercent = (float)_health.CurrentHP / _health.MaxHP;
-        float targetHealth = healthPercent * playerStats.MaxHealth;
-        float damage = playerStats.Health - targetHealth;
-
-        if (damage > 0)
-            playerStats.TakeDamage(damage);
-    }
-
-    private void HandleDied()
-    {
-        // Fail the active mission if there is one
-        if (MissionManager.Instance != null && MissionManager.Instance.IsMissionActive)
-            MissionManager.Instance.FailMission();
-
-        // Disable player movement
-        if (PlayerStateManager.Instance != null)
+        private void Awake()
         {
-            var controller = GetComponent<PlayerController>();
-            if (controller != null) controller.enabled = false;
+            _health = GetComponent<Health>();
         }
 
-        HUDManager.Instance?.ShowToast("WASTED");
-    }
+        private void OnEnable()
+        {
+            _health.OnDamaged += HandleDamaged;
+            _health.OnDied += HandleDied;
+        }
 
-    /// <summary>
-    /// Call this to respawn the player (future: after death screen).
-    /// Resets health and re-enables movement.
-    /// </summary>
-    public void Respawn()
-    {
-        _health.Reset();
+        private void OnDisable()
+        {
+            _health.OnDamaged -= HandleDamaged;
+            _health.OnDied -= HandleDied;
+        }
 
-        if (playerStats != null)
-            playerStats.Heal(playerStats.MaxHealth);
+        private void HandleDamaged(DamageInfo info)
+        {
+            if (playerStats == null) return;
 
-        var controller = GetComponent<PlayerController>();
-        if (controller != null) controller.enabled = true;
+            float healthPercent = (float)_health.CurrentHP / _health.MaxHP;
+            float targetHealth = healthPercent * playerStats.MaxHealth;
+            float damage = playerStats.Health - targetHealth;
+
+            if (damage > 0)
+                playerStats.TakeDamage(damage);
+        }
+
+        private void HandleDied()
+        {
+            if (MissionManager.Instance != null && MissionManager.Instance.IsMissionActive)
+                MissionManager.Instance.FailMission();
+
+            if (PlayerStateManager.Instance != null)
+            {
+                var controller = GetComponent<PlayerController>();
+                if (controller != null) controller.enabled = false;
+            }
+
+            HUDManager.Instance?.ShowToast("WASTED");
+        }
+
+        public void Respawn()
+        {
+            _health.Reset();
+
+            if (playerStats != null)
+                playerStats.Heal(playerStats.MaxHealth);
+
+            var controller = GetComponent<PlayerController>();
+            if (controller != null) controller.enabled = true;
+        }
     }
 }

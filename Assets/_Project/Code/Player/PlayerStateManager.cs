@@ -1,160 +1,112 @@
 using System;
 using UnityEngine;
 
-/// <summary>
-/// Owns the player's current state (OnFoot vs InVehicle) and handles transitions.
-/// Single entry point for all state changes — nothing else should directly enable
-/// or disable PlayerController / MotorcycleController.
-///
-/// Lives on the Player GameObject. Exposes a static Instance for convenience.
-/// </summary>
-public class PlayerStateManager : MonoBehaviour
+namespace MCGame.Gameplay.Player
 {
-    public enum PlayerState
-    {
-        OnFoot,
-        InVehicle
-    }
-
-    public static PlayerStateManager Instance { get; private set; }
-
-    [Header("Player Components")]
-    [SerializeField] private PlayerController playerController;
-    [SerializeField] private CharacterController characterController;
-
-    [Header("Current State (Read-Only)")]
-    [SerializeField] private PlayerState currentState = PlayerState.OnFoot;
-
-    // Currently mounted vehicle (null when OnFoot).
-    private MonoBehaviour _currentVehicle;
-    // Timestamp of last state change — used to suppress input consumers immediately after a transition.
-    private float _lastStateChangeTime = -999f;
-
-    [Tooltip("Grace period (seconds) after a state change during which other interactables ignore inputs.")]
-    [SerializeField] private float stateChangeCooldown = 0.2f;
-
     /// <summary>
-    /// True if the player state changed within the last stateChangeCooldown seconds.
-    /// Other interaction scripts should check this and bail out if true, to prevent
-    /// the same button press being consumed by both mount/dismount and another interaction.
+    /// Owns the player's current state (OnFoot vs InVehicle) and handles transitions.
+    /// Single entry point for all state changes — nothing else should directly enable
+    /// or disable PlayerController / MotorcycleController.
     /// </summary>
-    public bool JustChangedState => (Time.time - _lastStateChangeTime) < stateChangeCooldown;
-
-    /// <summary>Current player state. Read-only to outside callers.</summary>
-    public PlayerState CurrentState => currentState;
-
-    /// <summary>True when the player is currently mounted on a vehicle.</summary>
-    public bool IsInVehicle => currentState == PlayerState.InVehicle;
-
-    /// <summary>Reference to the currently mounted vehicle, or null.</summary>
-    public MonoBehaviour CurrentVehicle => _currentVehicle;
-
-    /// <summary>
-    /// Fires whenever the state changes. Passes the new state.
-    /// Camera, animation, and HUD systems should subscribe to this.
-    /// </summary>
-    public event Action<PlayerState> OnStateChanged;
-
-    private void Awake()
+    public class PlayerStateManager : MonoBehaviour
     {
-        if (Instance != null && Instance != this)
+        public enum PlayerState
         {
-            Destroy(this);
-            return;
+            OnFoot,
+            InVehicle
         }
 
-        Instance = this;
+        public static PlayerStateManager Instance { get; private set; }
 
-        if (playerController == null)
-            playerController = GetComponent<PlayerController>();
+        [Header("Player Components")]
+        [SerializeField] private PlayerController playerController;
+        [SerializeField] private CharacterController characterController;
 
-        if (characterController == null)
-            characterController = GetComponent<CharacterController>();
-    }
+        [Header("Current State (Read-Only)")]
+        [SerializeField] private PlayerState currentState = PlayerState.OnFoot;
 
-    private void OnDestroy()
-    {
-        if (Instance == this)
-            Instance = null;
-    }
+        // Currently mounted vehicle (null when OnFoot).
+        private MonoBehaviour _currentVehicle;
+        private float _lastStateChangeTime = -999f;
 
-    /// <summary>
-    /// Transition the player into a vehicle. Called by MotorcycleInteraction
-    /// (or any future vehicle interaction script) when the player mounts.
-    /// </summary>
-    /// <param name="vehicle">The vehicle being mounted. Must expose a SeatPosition transform.</param>
-    /// <param name="seatPosition">Where the player should be parented to.</param>
-    public void EnterVehicle(MonoBehaviour vehicle, Transform seatPosition)
-    {
-        Debug.Log($"[PSM] EnterVehicle called. frame={Time.frameCount}");
+        [Tooltip("Grace period (seconds) after a state change during which other interactables ignore inputs.")]
+        [SerializeField] private float stateChangeCooldown = 0.2f;
 
-        if (currentState == PlayerState.InVehicle)
+        public bool JustChangedState => (Time.time - _lastStateChangeTime) < stateChangeCooldown;
+        public PlayerState CurrentState => currentState;
+        public bool IsInVehicle => currentState == PlayerState.InVehicle;
+        public MonoBehaviour CurrentVehicle => _currentVehicle;
+
+        public event Action<PlayerState> OnStateChanged;
+
+        private void Awake()
         {
-            return;
+            if (Instance != null && Instance != this)
+            {
+                Destroy(this);
+                return;
+            }
+
+            Instance = this;
+
+            if (playerController == null)
+                playerController = GetComponent<PlayerController>();
+
+            if (characterController == null)
+                characterController = GetComponent<CharacterController>();
         }
 
-        if (vehicle == null || seatPosition == null)
+        private void OnDestroy()
         {
-            return;
+            if (Instance == this)
+                Instance = null;
         }
 
-        // 1. Disable on-foot movement + collision
-        if (playerController != null) playerController.enabled = false;
-        if (characterController != null) characterController.enabled = false;
-
-        // 2. Parent player to seat and snap to seat position/rotation
-        transform.SetParent(seatPosition, worldPositionStays: false);
-        transform.localPosition = Vector3.zero;
-        transform.localRotation = Quaternion.identity;
-
-        // 3. Record state
-        _currentVehicle = vehicle;
-        SetState(PlayerState.InVehicle);
-    }
-
-    /// <summary>
-    /// Transition the player out of a vehicle. Called by MotorcycleInteraction
-    /// when the player dismounts.
-    /// </summary>
-    /// <param name="dismountPosition">Where the player should be placed on exit.</param>
-    public void ExitVehicle(Transform dismountPosition)
-    {
-        Debug.Log($"[PSM] ExitVehicle called. frame={Time.frameCount}");
-
-        if (currentState == PlayerState.OnFoot)
+        public void EnterVehicle(MonoBehaviour vehicle, Transform seatPosition)
         {
-            return;
+            Debug.Log($"[PSM] EnterVehicle called. frame={Time.frameCount}");
+
+            if (currentState == PlayerState.InVehicle) return;
+            if (vehicle == null || seatPosition == null) return;
+
+            if (playerController != null) playerController.enabled = false;
+            if (characterController != null) characterController.enabled = false;
+
+            transform.SetParent(seatPosition, worldPositionStays: false);
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+
+            _currentVehicle = vehicle;
+            SetState(PlayerState.InVehicle);
         }
 
-        if (dismountPosition == null)
+        public void ExitVehicle(Transform dismountPosition)
         {
-            return;
+            Debug.Log($"[PSM] ExitVehicle called. frame={Time.frameCount}");
+
+            if (currentState == PlayerState.OnFoot) return;
+            if (dismountPosition == null) return;
+
+            transform.SetParent(null, worldPositionStays: false);
+
+            transform.position = dismountPosition.position;
+            transform.rotation = dismountPosition.rotation;
+
+            // CharacterController must be re-enabled BEFORE PlayerController.
+            if (characterController != null) characterController.enabled = true;
+            if (playerController != null) playerController.enabled = true;
+
+            _currentVehicle = null;
+            SetState(PlayerState.OnFoot);
         }
 
-        // 1. Unparent from vehicle (back to scene root)
-        transform.SetParent(null, worldPositionStays: false);
-
-        // 2. Move to dismount position in world space
-        transform.position = dismountPosition.position;
-        transform.rotation = dismountPosition.rotation;
-
-        // 3. Re-enable on-foot movement + collision
-        // NOTE: CharacterController must be re-enabled BEFORE PlayerController,
-        // because PlayerController.Update() reads from the CharacterController.
-        if (characterController != null) characterController.enabled = true;
-        if (playerController != null) playerController.enabled = true;
-
-        // 4. Clear state
-        _currentVehicle = null;
-        SetState(PlayerState.OnFoot);
-    }
-
-    private void SetState(PlayerState newState)
-    {
-        if (currentState == newState) return;
-        Debug.Log($"[PSM] State changing from {currentState} to {newState}, frame={Time.frameCount}");
-        currentState = newState;
-        _lastStateChangeTime = Time.time;
-        OnStateChanged?.Invoke(currentState);
+        private void SetState(PlayerState newState)
+        {
+            if (currentState == newState) return;
+            Debug.Log($"[PSM] State changing from {currentState} to {newState}, frame={Time.frameCount}");
+            currentState = newState;
+            _lastStateChangeTime = Time.time;
+            OnStateChanged?.Invoke(currentState);
+        }
     }
 }

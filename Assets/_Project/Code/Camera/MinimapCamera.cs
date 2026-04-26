@@ -1,35 +1,37 @@
 using UnityEngine;
 
-// MinimapCamera follows the player from above.
-// It rotates to match the player's facing direction
-// so the minimap always shows forward as up.
-
-public class MinimapCamera : MonoBehaviour
+namespace MCGame.Gameplay.Camera
 {
-    [SerializeField] private Transform target;
-    [SerializeField] private float height = 50f;
-    private bool _inputEnabled = true;
+    // MinimapCamera follows the player from above.
+    // It rotates to match the player's facing direction
+    // so the minimap always shows forward as up.
 
-    private void LateUpdate()
+    public class MinimapCamera : MonoBehaviour
     {
-        if (!_inputEnabled) return;
-        
-        if (target == null) return;
+        [SerializeField] private Transform target;
+        [SerializeField] private float height = 50f;
+        private bool _inputEnabled = true;
 
-        // Follow player position
-        transform.position = new Vector3(
-            target.position.x,
-            height,
-            target.position.z
-        );
+        private void LateUpdate()
+        {
+            if (!_inputEnabled) return;
 
-        ThirdPersonCamera cam = Camera.main.GetComponent<ThirdPersonCamera>();
-        if (cam != null)
-            transform.rotation = Quaternion.Euler(90f, cam.GetCameraRotation().eulerAngles.y, 0f);
-    }
+            if (target == null) return;
 
-    public void SetInputEnabled(bool enabled)
-    {
-        _inputEnabled = enabled;
+            transform.position = new Vector3(
+                target.position.x,
+                height,
+                target.position.z
+            );
+
+            ThirdPersonCamera cam = UnityEngine.Camera.main.GetComponent<ThirdPersonCamera>();
+            if (cam != null)
+                transform.rotation = Quaternion.Euler(90f, cam.GetCameraRotation().eulerAngles.y, 0f);
+        }
+
+        public void SetInputEnabled(bool enabled)
+        {
+            _inputEnabled = enabled;
+        }
     }
 }

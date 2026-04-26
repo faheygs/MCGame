@@ -3,119 +3,115 @@ using TMPro;
 using System.Collections;
 using MCGame.Core;
 
-// HUDHeatStatus shows subtle heat state text under the minimap.
-// Flashes briefly when heat changes, persists when at max heat.
-
-public class HUDHeatStatus : MonoBehaviour
+namespace MCGame.Gameplay.UI
 {
-    [Header("References")]
-    [SerializeField] private TextMeshProUGUI heatStatusText;
-
-    [Header("Settings")]
-    [SerializeField] private float displayDuration = 2f;
-    [SerializeField] private float fadeDuration = 0.5f;
-
-    [Header("Data")]
-    [SerializeField] private PlayerStats playerStats;
-
-    private Coroutine _displayCoroutine;
-    private int _previousHeatLevel;
-
-    private void OnEnable()
+    // HUDHeatStatus shows subtle heat state text under the minimap.
+    public class HUDHeatStatus : MonoBehaviour
     {
-        playerStats.OnHeatChanged += HandleHeatChanged;
-    }
+        [Header("References")]
+        [SerializeField] private TextMeshProUGUI heatStatusText;
 
-    private void OnDisable()
-    {
-        playerStats.OnHeatChanged -= HandleHeatChanged;
-    }
+        [Header("Settings")]
+        [SerializeField] private float displayDuration = 2f;
+        [SerializeField] private float fadeDuration = 0.5f;
 
-    private void Start()
-    {
-        heatStatusText.alpha = 0f;
-        _previousHeatLevel = playerStats.HeatLevel;
-    }
+        [Header("Data")]
+        [SerializeField] private PlayerStats playerStats;
 
-    private void HandleHeatChanged(int newLevel)
-    {
-        if (newLevel == playerStats.MaxHeatLevel)
+        private Coroutine _displayCoroutine;
+        private int _previousHeatLevel;
+
+        private void OnEnable()
         {
-            ShowPersistent("MAX HEAT");
-        }
-        else if (newLevel > _previousHeatLevel)
-        {
-            ShowBrief("+ HEAT");
-        }
-        else if (newLevel < _previousHeatLevel)
-        {
-            if (newLevel == 0)
-                ShowBrief("IN THE CLEAR");
-            else
-                ShowBrief("LAYING LOW");
+            playerStats.OnHeatChanged += HandleHeatChanged;
         }
 
-        _previousHeatLevel = newLevel;
-    }
-
-    private void ShowBrief(string message)
-    {
-        if (_displayCoroutine != null)
-            StopCoroutine(_displayCoroutine);
-        _displayCoroutine = StartCoroutine(BriefDisplay(message));
-    }
-
-    private void ShowPersistent(string message)
-    {
-        if (_displayCoroutine != null)
-            StopCoroutine(_displayCoroutine);
-        heatStatusText.text = message;
-        heatStatusText.alpha = 1f;
-        _displayCoroutine = StartCoroutine(WaitForHeatDrop());
-    }
-
-    private IEnumerator BriefDisplay(string message)
-    {
-        heatStatusText.text = message;
-
-        // Fade in
-        float elapsed = 0f;
-        while (elapsed < fadeDuration)
+        private void OnDisable()
         {
-            elapsed += Time.deltaTime;
-            heatStatusText.alpha = Mathf.Clamp01(elapsed / fadeDuration);
-            yield return null;
+            playerStats.OnHeatChanged -= HandleHeatChanged;
         }
-        heatStatusText.alpha = 1f;
 
-        // Hold
-        yield return new WaitForSeconds(displayDuration);
-
-        // Fade out
-        elapsed = 0f;
-        while (elapsed < fadeDuration)
+        private void Start()
         {
-            elapsed += Time.deltaTime;
-            heatStatusText.alpha = 1f - Mathf.Clamp01(elapsed / fadeDuration);
-            yield return null;
+            heatStatusText.alpha = 0f;
+            _previousHeatLevel = playerStats.HeatLevel;
         }
-        heatStatusText.alpha = 0f;
-    }
 
-    private IEnumerator WaitForHeatDrop()
-    {
-        // Stay visible until heat drops below max
-        while (playerStats.HeatLevel >= playerStats.MaxHeatLevel)
-            yield return null;
-
-        // Fade out
-        float elapsed = 0f;
-        while (elapsed < fadeDuration)
+        private void HandleHeatChanged(int newLevel)
         {
-            elapsed += Time.deltaTime;
-            heatStatusText.alpha = 1f - Mathf.Clamp01(elapsed / fadeDuration);
-            yield return null;
+            if (newLevel == playerStats.MaxHeatLevel)
+            {
+                ShowPersistent("MAX HEAT");
+            }
+            else if (newLevel > _previousHeatLevel)
+            {
+                ShowBrief("+ HEAT");
+            }
+            else if (newLevel < _previousHeatLevel)
+            {
+                if (newLevel == 0)
+                    ShowBrief("IN THE CLEAR");
+                else
+                    ShowBrief("LAYING LOW");
+            }
+
+            _previousHeatLevel = newLevel;
         }
-        heatStatusText.alpha = 0f;
+
+        private void ShowBrief(string message)
+        {
+            if (_displayCoroutine != null)
+                StopCoroutine(_displayCoroutine);
+            _displayCoroutine = StartCoroutine(BriefDisplay(message));
+        }
+
+        private void ShowPersistent(string message)
+        {
+            if (_displayCoroutine != null)
+                StopCoroutine(_displayCoroutine);
+            heatStatusText.text = message;
+            heatStatusText.alpha = 1f;
+            _displayCoroutine = StartCoroutine(WaitForHeatDrop());
+        }
+
+        private IEnumerator BriefDisplay(string message)
+        {
+            heatStatusText.text = message;
+
+            float elapsed = 0f;
+            while (elapsed < fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                heatStatusText.alpha = Mathf.Clamp01(elapsed / fadeDuration);
+                yield return null;
+            }
+            heatStatusText.alpha = 1f;
+
+            yield return new WaitForSeconds(displayDuration);
+
+            elapsed = 0f;
+            while (elapsed < fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                heatStatusText.alpha = 1f - Mathf.Clamp01(elapsed / fadeDuration);
+                yield return null;
+            }
+            heatStatusText.alpha = 0f;
+        }
+
+        private IEnumerator WaitForHeatDrop()
+        {
+            while (playerStats.HeatLevel >= playerStats.MaxHeatLevel)
+                yield return null;
+
+            float elapsed = 0f;
+            while (elapsed < fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                heatStatusText.alpha = 1f - Mathf.Clamp01(elapsed / fadeDuration);
+                yield return null;
+            }
+            heatStatusText.alpha = 0f;
+        }
     }
 }

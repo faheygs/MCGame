@@ -1,399 +1,331 @@
 using UnityEngine;
 using MCGame.Combat;
+using MCGame.Gameplay.Player;
 
-/// <summary>
-/// AI state machine for police NPCs. Handles pursuit, engagement,
-/// disengagement, and knockout states.
-/// 
-/// Spawned and tracked by PoliceManager. Reads player position each frame
-/// and acts based on current state and distance.
-/// </summary>
-[RequireComponent(typeof(CharacterController))]
-[RequireComponent(typeof(Health))]
-public class PoliceNPC : MonoBehaviour
+namespace MCGame.Gameplay.Police
 {
-    public enum PoliceState
+    /// <summary>
+    /// AI state machine for police NPCs.
+    /// </summary>
+    [RequireComponent(typeof(CharacterController))]
+    [RequireComponent(typeof(Health))]
+    public class PoliceNPC : MonoBehaviour
     {
-        Pursue,
-        Engage,
-        Disengage,
-        KnockedOut
-    }
-
-    [Header("Movement")]
-    [Tooltip("Walking speed when far from player")]
-    [SerializeField] private float walkSpeed = 2.5f;
-
-    [Tooltip("Running speed when closing distance")]
-    [SerializeField] private float runSpeed = 5f;
-
-    [Tooltip("Distance threshold to switch from walk to run")]
-    [SerializeField] private float runDistance = 2f;
-
-    [Header("Combat")]
-    [Tooltip("Distance to enter Engage state and start attacking")]
-    [SerializeField] private float engageRange = 1.5f;
-
-    [Tooltip("Damage dealt per punch")]
-    [SerializeField] private int attackDamage = 10;
-
-    [Tooltip("Seconds between attacks")]
-    [SerializeField] private float attackCooldown = 2.5f;
-
-    [Header("Disengage")]
-    [Tooltip("Seconds to walk away before being destroyed")]
-    [SerializeField] private float disengageTime = 8f;
-
-    [Header("Knockout")]
-    [Tooltip("Seconds before knocked out police NPC is destroyed")]
-    [SerializeField] private float knockoutDestroyDelay = 10f;
-
-    [Header("Hit Stun")]
-    [Tooltip("How long the police NPC is stunned after being hit")]
-    [SerializeField] private float hitStunDuration = 0.8f;
-
-    private bool _isStunned;
-    private float _stunTimer;
-
-    // =========================================================================
-    // RUNTIME STATE
-    // =========================================================================
-
-    private CharacterController _controller;
-    private Animator _animator;
-    private Transform _player;
-    private Health _playerHealth;
-    private PoliceState _currentState;
-    private float _attackTimer;
-    private float _disengageTimer;
-    private Vector3 _disengageDirection;
-    private bool _isKnockedOut;
-
-    // =========================================================================
-    // PUBLIC ACCESSORS
-    // =========================================================================
-
-    public PoliceState CurrentState => _currentState;
-
-    // =========================================================================
-    // LIFECYCLE
-    // =========================================================================
-
-    private void Awake()
-    {
-        _controller = GetComponent<CharacterController>();
-        _animator = GetComponentInChildren<Animator>();
-    }
-
-    private void Start()
-    {
-        // Find the player
-        PlayerController playerController = FindAnyObjectByType<PlayerController>();
-        if (playerController != null)
+        public enum PoliceState
         {
-            _player = playerController.transform;
-            _playerHealth = _player.GetComponent<Health>();
-        }
-        else
-        {
-            Debug.LogError("[PoliceNPC] Cannot find PlayerController. Police AI disabled.", this);
-            enabled = false;
-            return;
+            Pursue,
+            Engage,
+            Disengage,
+            KnockedOut
         }
 
-        // Start in pursue state
-        SetState(PoliceState.Pursue);
-    }
+        [Header("Movement")]
+        [Tooltip("Walking speed when far from player")]
+        [SerializeField] private float walkSpeed = 2.5f;
 
-    private void Update()
-    {
-        if (_isKnockedOut) return;
+        [Tooltip("Running speed when closing distance")]
+        [SerializeField] private float runSpeed = 5f;
 
-        // Handle stun timer
-        if (_isStunned)
+        [Tooltip("Distance threshold to switch from walk to run")]
+        [SerializeField] private float runDistance = 2f;
+
+        [Header("Combat")]
+        [Tooltip("Distance to enter Engage state and start attacking")]
+        [SerializeField] private float engageRange = 1.5f;
+
+        [Tooltip("Damage dealt per punch")]
+        [SerializeField] private int attackDamage = 10;
+
+        [Tooltip("Seconds between attacks")]
+        [SerializeField] private float attackCooldown = 2.5f;
+
+        [Header("Disengage")]
+        [Tooltip("Seconds to walk away before being destroyed")]
+        [SerializeField] private float disengageTime = 8f;
+
+        [Header("Knockout")]
+        [Tooltip("Seconds before knocked out police NPC is destroyed")]
+        [SerializeField] private float knockoutDestroyDelay = 10f;
+
+        [Header("Hit Stun")]
+        [Tooltip("How long the police NPC is stunned after being hit")]
+        [SerializeField] private float hitStunDuration = 0.8f;
+
+        private bool _isStunned;
+        private float _stunTimer;
+
+        private CharacterController _controller;
+        private Animator _animator;
+        private Transform _player;
+        private Health _playerHealth;
+        private PoliceState _currentState;
+        private float _attackTimer;
+        private float _disengageTimer;
+        private Vector3 _disengageDirection;
+        private bool _isKnockedOut;
+
+        public PoliceState CurrentState => _currentState;
+
+        private void Awake()
         {
-            _stunTimer -= Time.deltaTime;
-            if (_stunTimer <= 0f)
+            _controller = GetComponent<CharacterController>();
+            _animator = GetComponentInChildren<Animator>();
+        }
+
+        private void Start()
+        {
+            PlayerController playerController = FindAnyObjectByType<PlayerController>();
+            if (playerController != null)
             {
-                _isStunned = false;
+                _player = playerController.transform;
+                _playerHealth = _player.GetComponent<Health>();
             }
-            return; // Can't do anything while stunned
-        }
+            else
+            {
+                Debug.LogError("[PoliceNPC] Cannot find PlayerController. Police AI disabled.", this);
+                enabled = false;
+                return;
+            }
 
-        switch (_currentState)
-        {
-            case PoliceState.Pursue:
-                UpdatePursue();
-                break;
-            case PoliceState.Engage:
-                UpdateEngage();
-                break;
-            case PoliceState.Disengage:
-                UpdateDisengage();
-                break;
-        }
-
-        // Tick attack cooldown
-        if (_attackTimer > 0f)
-        {
-            _attackTimer -= Time.deltaTime;
-        }
-    }
-
-    // =========================================================================
-    // STATE MANAGEMENT
-    // =========================================================================
-
-    public void SetState(PoliceState newState)
-    {
-        if (_isKnockedOut) return;
-
-        _currentState = newState;
-
-        switch (newState)
-        {
-            case PoliceState.Pursue:
-                Debug.Log($"[PoliceNPC] '{gameObject.name}' → PURSUE");
-                break;
-
-            case PoliceState.Engage:
-                Debug.Log($"[PoliceNPC] '{gameObject.name}' → ENGAGE");
-                break;
-
-            case PoliceState.Disengage:
-                Debug.Log($"[PoliceNPC] '{gameObject.name}' → DISENGAGE");
-                _disengageTimer = disengageTime;
-                // Walk away from player
-                if (_player != null)
-                {
-                    _disengageDirection = (transform.position - _player.position).normalized;
-                    _disengageDirection.y = 0;
-                }
-                else
-                {
-                    _disengageDirection = -transform.forward;
-                }
-                break;
-
-            case PoliceState.KnockedOut:
-                HandleKnockout();
-                break;
-        }
-    }
-
-    // =========================================================================
-    // PURSUE — Move toward player
-    // =========================================================================
-
-    private void UpdatePursue()
-    {
-        if (_player == null) return;
-
-        float distanceToPlayer = Vector3.Distance(transform.position, _player.position);
-
-        // Switch to Engage if close enough
-        if (distanceToPlayer <= engageRange)
-        {
-            SetState(PoliceState.Engage);
-            return;
-        }
-
-        // Determine speed based on distance
-        float currentSpeed = distanceToPlayer > runDistance ? runSpeed : walkSpeed;
-
-        // Move toward player
-        Vector3 direction = (_player.position - transform.position);
-        direction.y = 0;
-        direction = direction.normalized;
-
-        _controller.Move(direction * currentSpeed * Time.deltaTime);
-        _controller.Move(Vector3.down * 9.81f * Time.deltaTime);
-
-        // Face player
-        if (direction.sqrMagnitude > 0.01f)
-        {
-            transform.rotation = Quaternion.LookRotation(direction);
-        }
-
-        // Update animator
-        if (_animator != null)
-        {
-            _animator.SetFloat("Speed", currentSpeed);
-        }
-    }
-
-    // =========================================================================
-    // ENGAGE — Attack player when in range
-    // =========================================================================
-
-    private void UpdateEngage()
-    {
-        if (_player == null) return;
-
-        float distanceToPlayer = Vector3.Distance(transform.position, _player.position);
-
-        // If player moves out of range, go back to pursue
-        if (distanceToPlayer > engageRange * 1.5f)
-        {
             SetState(PoliceState.Pursue);
-            return;
         }
 
-        // Face player
-        Vector3 direction = (_player.position - transform.position);
-        direction.y = 0;
-        if (direction.sqrMagnitude > 0.01f)
+        private void Update()
         {
-            transform.rotation = Quaternion.LookRotation(direction.normalized);
-        }
+            if (_isKnockedOut) return;
 
-        // Stop moving
-        _controller.Move(Vector3.down * 9.81f * Time.deltaTime);
-
-        if (_animator != null)
-        {
-            _animator.SetFloat("Speed", 0f);
-        }
-
-        // Attack if cooldown is ready
-        if (_attackTimer <= 0f)
-        {
-            PerformAttack();
-        }
-    }
-
-    private void PerformAttack()
-    {
-        _attackTimer = attackCooldown;
-
-        // Play attack animation
-        if (_animator != null)
-        {
-            _animator.SetTrigger("Attack");
-        }
-
-        // Delay damage to sync with punch animation
-        StartCoroutine(DealDamageDelayed(0.4f));
-    }
-
-    private System.Collections.IEnumerator DealDamageDelayed(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-
-        // Re-check distance — player may have moved away during wind-up
-        if (_player == null || _isKnockedOut) yield break;
-
-        float dist = Vector3.Distance(transform.position, _player.position);
-        if (dist > engageRange * 1.5f) yield break;
-
-        if (_playerHealth != null && !_playerHealth.IsDead)
-        {
-            Vector3 hitDir = (_player.position - transform.position).normalized;
-
-            DamageInfo info = new DamageInfo(
-                attackDamage,
-                gameObject,
-                hitDir,
-                false
-            );
-
-            _playerHealth.TakeDamage(info);
-
-            Debug.Log($"[PoliceNPC] '{gameObject.name}' hit player for {attackDamage} damage.");
-        }
-    }
-
-    // =========================================================================
-    // DISENGAGE — Walk away and despawn
-    // =========================================================================
-
-    private void UpdateDisengage()
-    {
-        _disengageTimer -= Time.deltaTime;
-
-        if (_disengageTimer <= 0f)
-        {
-            // Time's up — remove from PoliceManager and destroy
-            if (PoliceManager.Instance != null)
+            if (_isStunned)
             {
-                PoliceManager.Instance.UnregisterPolice(gameObject);
+                _stunTimer -= Time.deltaTime;
+                if (_stunTimer <= 0f)
+                {
+                    _isStunned = false;
+                }
+                return;
             }
-            Destroy(gameObject);
-            return;
+
+            switch (_currentState)
+            {
+                case PoliceState.Pursue:
+                    UpdatePursue();
+                    break;
+                case PoliceState.Engage:
+                    UpdateEngage();
+                    break;
+                case PoliceState.Disengage:
+                    UpdateDisengage();
+                    break;
+            }
+
+            if (_attackTimer > 0f)
+            {
+                _attackTimer -= Time.deltaTime;
+            }
         }
 
-        // Walk away from player
-        _controller.Move(_disengageDirection * walkSpeed * Time.deltaTime);
-        _controller.Move(Vector3.down * 9.81f * Time.deltaTime);
-
-        // Face movement direction
-        if (_disengageDirection.sqrMagnitude > 0.01f)
+        public void SetState(PoliceState newState)
         {
-            transform.rotation = Quaternion.LookRotation(_disengageDirection);
+            if (_isKnockedOut) return;
+
+            _currentState = newState;
+
+            switch (newState)
+            {
+                case PoliceState.Pursue:
+                    Debug.Log($"[PoliceNPC] '{gameObject.name}' → PURSUE");
+                    break;
+
+                case PoliceState.Engage:
+                    Debug.Log($"[PoliceNPC] '{gameObject.name}' → ENGAGE");
+                    break;
+
+                case PoliceState.Disengage:
+                    Debug.Log($"[PoliceNPC] '{gameObject.name}' → DISENGAGE");
+                    _disengageTimer = disengageTime;
+                    if (_player != null)
+                    {
+                        _disengageDirection = (transform.position - _player.position).normalized;
+                        _disengageDirection.y = 0;
+                    }
+                    else
+                    {
+                        _disengageDirection = -transform.forward;
+                    }
+                    break;
+
+                case PoliceState.KnockedOut:
+                    HandleKnockout();
+                    break;
+            }
         }
 
-        if (_animator != null)
+        private void UpdatePursue()
         {
-            _animator.SetFloat("Speed", walkSpeed);
+            if (_player == null) return;
+
+            float distanceToPlayer = Vector3.Distance(transform.position, _player.position);
+
+            if (distanceToPlayer <= engageRange)
+            {
+                SetState(PoliceState.Engage);
+                return;
+            }
+
+            float currentSpeed = distanceToPlayer > runDistance ? runSpeed : walkSpeed;
+
+            Vector3 direction = (_player.position - transform.position);
+            direction.y = 0;
+            direction = direction.normalized;
+
+            _controller.Move(direction * currentSpeed * Time.deltaTime);
+            _controller.Move(Vector3.down * 9.81f * Time.deltaTime);
+
+            if (direction.sqrMagnitude > 0.01f)
+            {
+                transform.rotation = Quaternion.LookRotation(direction);
+            }
+
+            if (_animator != null)
+            {
+                _animator.SetFloat("Speed", currentSpeed);
+            }
         }
-    }
 
-    // =========================================================================
-    // KNOCKOUT — Called by PoliceHealth when health reaches 0
-    // =========================================================================
-
-    private void HandleKnockout()
-    {
-        if (_isKnockedOut) return;
-        _isKnockedOut = true;
-
-        Debug.Log($"[PoliceNPC] '{gameObject.name}' knocked out.");
-
-        // Stop movement
-        if (_animator != null)
+        private void UpdateEngage()
         {
-            _animator.SetFloat("Speed", 0f);
-            _animator.SetTrigger("Knockout");
+            if (_player == null) return;
+
+            float distanceToPlayer = Vector3.Distance(transform.position, _player.position);
+
+            if (distanceToPlayer > engageRange * 1.5f)
+            {
+                SetState(PoliceState.Pursue);
+                return;
+            }
+
+            Vector3 direction = (_player.position - transform.position);
+            direction.y = 0;
+            if (direction.sqrMagnitude > 0.01f)
+            {
+                transform.rotation = Quaternion.LookRotation(direction.normalized);
+            }
+
+            _controller.Move(Vector3.down * 9.81f * Time.deltaTime);
+
+            if (_animator != null)
+            {
+                _animator.SetFloat("Speed", 0f);
+            }
+
+            if (_attackTimer <= 0f)
+            {
+                PerformAttack();
+            }
         }
 
-        // Disable this AI
-        enabled = false;
-
-        // Destroy after delay
-        Destroy(gameObject, knockoutDestroyDelay);
-    }
-
-    // =========================================================================
-    // PUBLIC — Called by PoliceManager when heat clears
-    // =========================================================================
-
-    /// <summary>
-    /// Tell this police NPC to disengage. Called by PoliceManager when heat drops to 0.
-    /// </summary>
-    public void Disengage()
-    {
-        if (_isKnockedOut) return;
-        SetState(PoliceState.Disengage);
-    }
-
-    /// <summary>
-    /// Called by PoliceHealth when this NPC takes damage.
-    /// Interrupts current attack and stuns briefly.
-    /// </summary>
-    public void ApplyHitStun()
-    {
-        if (_isKnockedOut) return;
-
-        _isStunned = true;
-        _stunTimer = hitStunDuration;
-
-        // Reset attack cooldown so they don't attack immediately after stun ends
-        _attackTimer = attackCooldown * 0.5f;
-
-        // Stop movement during stun
-        if (_animator != null)
+        private void PerformAttack()
         {
-            _animator.SetFloat("Speed", 0f);
+            _attackTimer = attackCooldown;
+
+            if (_animator != null)
+            {
+                _animator.SetTrigger("Attack");
+            }
+
+            StartCoroutine(DealDamageDelayed(0.4f));
+        }
+
+        private System.Collections.IEnumerator DealDamageDelayed(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+
+            if (_player == null || _isKnockedOut) yield break;
+
+            float dist = Vector3.Distance(transform.position, _player.position);
+            if (dist > engageRange * 1.5f) yield break;
+
+            if (_playerHealth != null && !_playerHealth.IsDead)
+            {
+                Vector3 hitDir = (_player.position - transform.position).normalized;
+
+                DamageInfo info = new DamageInfo(
+                    attackDamage,
+                    gameObject,
+                    hitDir,
+                    false
+                );
+
+                _playerHealth.TakeDamage(info);
+
+                Debug.Log($"[PoliceNPC] '{gameObject.name}' hit player for {attackDamage} damage.");
+            }
+        }
+
+        private void UpdateDisengage()
+        {
+            _disengageTimer -= Time.deltaTime;
+
+            if (_disengageTimer <= 0f)
+            {
+                if (PoliceManager.Instance != null)
+                {
+                    PoliceManager.Instance.UnregisterPolice(gameObject);
+                }
+                Destroy(gameObject);
+                return;
+            }
+
+            _controller.Move(_disengageDirection * walkSpeed * Time.deltaTime);
+            _controller.Move(Vector3.down * 9.81f * Time.deltaTime);
+
+            if (_disengageDirection.sqrMagnitude > 0.01f)
+            {
+                transform.rotation = Quaternion.LookRotation(_disengageDirection);
+            }
+
+            if (_animator != null)
+            {
+                _animator.SetFloat("Speed", walkSpeed);
+            }
+        }
+
+        private void HandleKnockout()
+        {
+            if (_isKnockedOut) return;
+            _isKnockedOut = true;
+
+            Debug.Log($"[PoliceNPC] '{gameObject.name}' knocked out.");
+
+            if (_animator != null)
+            {
+                _animator.SetFloat("Speed", 0f);
+                _animator.SetTrigger("Knockout");
+            }
+
+            enabled = false;
+
+            Destroy(gameObject, knockoutDestroyDelay);
+        }
+
+        public void Disengage()
+        {
+            if (_isKnockedOut) return;
+            SetState(PoliceState.Disengage);
+        }
+
+        public void ApplyHitStun()
+        {
+            if (_isKnockedOut) return;
+
+            _isStunned = true;
+            _stunTimer = hitStunDuration;
+
+            _attackTimer = attackCooldown * 0.5f;
+
+            if (_animator != null)
+            {
+                _animator.SetFloat("Speed", 0f);
+            }
         }
     }
 }

@@ -1,71 +1,74 @@
 using UnityEngine;
 using MCGame.Input;
+using MCGame.Gameplay.Camera;
 
-[RequireComponent(typeof(CharacterController))]
-public class PlayerController : MonoBehaviour
+namespace MCGame.Gameplay.Player
 {
-    [Header("Movement Settings")]
-    [SerializeField] private float walkSpeed = 3f;
-    [SerializeField] private float runSpeed = 6f;
-    [SerializeField] private float rotationSpeed = 10f;
-    [SerializeField] private float gravity = -20f;
-
-    [Header("References")]
-    [SerializeField] private InputReader inputReader;
-
-    private CharacterController _characterController;
-    private ThirdPersonCamera _thirdPersonCamera;
-    private Vector3 _verticalVelocity;
-
-    private void Awake()
+    [RequireComponent(typeof(CharacterController))]
+    public class PlayerController : MonoBehaviour
     {
-        _characterController = GetComponent<CharacterController>();
+        [Header("Movement Settings")]
+        [SerializeField] private float walkSpeed = 3f;
+        [SerializeField] private float runSpeed = 6f;
+        [SerializeField] private float rotationSpeed = 10f;
+        [SerializeField] private float gravity = -20f;
 
-        // Find the camera automatically at runtime
-        // This avoids needing to manually assign it per scene
-        _thirdPersonCamera = Camera.main.GetComponent<ThirdPersonCamera>();
-    }
+        [Header("References")]
+        [SerializeField] private InputReader inputReader;
 
-    private void Update()
-    {
-        HandleGravity();
-        HandleMovement();
-    }
+        private CharacterController _characterController;
+        private ThirdPersonCamera _thirdPersonCamera;
+        private Vector3 _verticalVelocity;
 
-    private void HandleMovement()
-    {
-        Vector2 input = inputReader.MoveInput;
-        Vector3 moveDirection = new Vector3(input.x, 0f, input.y);
-
-        if (moveDirection.magnitude > 0.1f)
+        private void Awake()
         {
-            Quaternion cameraRotation = _thirdPersonCamera.GetCameraRotation();
-            moveDirection = cameraRotation * moveDirection;
+            _characterController = GetComponent<CharacterController>();
 
-            float speed = inputReader.SprintInput ? runSpeed : walkSpeed;
-
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
-                targetRotation,
-                rotationSpeed * Time.deltaTime
-            );
-
-            _characterController.Move(moveDirection * speed * Time.deltaTime);
-        }
-    }
-
-    private void HandleGravity()
-    {
-        if (_characterController.isGrounded)
-        {
-            _verticalVelocity.y = -2f;
-        }
-        else
-        {
-            _verticalVelocity.y += gravity * Time.deltaTime;
+            // Find the camera automatically at runtime
+            _thirdPersonCamera = UnityEngine.Camera.main.GetComponent<ThirdPersonCamera>();
         }
 
-        _characterController.Move(_verticalVelocity * Time.deltaTime);
+        private void Update()
+        {
+            HandleGravity();
+            HandleMovement();
+        }
+
+        private void HandleMovement()
+        {
+            Vector2 input = inputReader.MoveInput;
+            Vector3 moveDirection = new Vector3(input.x, 0f, input.y);
+
+            if (moveDirection.magnitude > 0.1f)
+            {
+                Quaternion cameraRotation = _thirdPersonCamera.GetCameraRotation();
+                moveDirection = cameraRotation * moveDirection;
+
+                float speed = inputReader.SprintInput ? runSpeed : walkSpeed;
+
+                Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+                transform.rotation = Quaternion.Slerp(
+                    transform.rotation,
+                    targetRotation,
+                    rotationSpeed * Time.deltaTime
+                );
+
+                _characterController.Move(moveDirection * speed * Time.deltaTime);
+            }
+        }
+
+        private void HandleGravity()
+        {
+            if (_characterController.isGrounded)
+            {
+                _verticalVelocity.y = -2f;
+            }
+            else
+            {
+                _verticalVelocity.y += gravity * Time.deltaTime;
+            }
+
+            _characterController.Move(_verticalVelocity * Time.deltaTime);
+        }
     }
 }

@@ -1,84 +1,81 @@
 using UnityEngine;
 using MCGame.Combat;
+using MCGame.Gameplay.Crime;
 
-/// <summary>
-/// Bridges Health component on police NPCs to the crime system.
-/// When a police NPC is knocked out, reports "Assault on Officer" crime
-/// and unregisters from PoliceManager.
-/// </summary>
-[RequireComponent(typeof(Health))]
-public class PoliceHealth : MonoBehaviour
+namespace MCGame.Gameplay.Police
 {
-    [Header("Crime Reporting")]
-    [Tooltip("Crime type reported when this officer is knocked out")]
-    [SerializeField] private CrimeType assaultOfficerCrimeType;
-
-    private Health _health;
-    private Animator _animator;
-    private bool _isKnockedOut;
-
-    private void Awake()
+    /// <summary>
+    /// Bridges Health component on police NPCs to the crime system.
+    /// </summary>
+    [RequireComponent(typeof(Health))]
+    public class PoliceHealth : MonoBehaviour
     {
-        _health = GetComponent<Health>();
-        _animator = GetComponentInChildren<Animator>();
-    }
+        [Header("Crime Reporting")]
+        [Tooltip("Crime type reported when this officer is knocked out")]
+        [SerializeField] private CrimeType assaultOfficerCrimeType;
 
-    private void OnEnable()
-    {
-        _health.OnDamaged += HandleDamaged;
-        _health.OnDied += HandleDied;
-    }
+        private Health _health;
+        private Animator _animator;
+        private bool _isKnockedOut;
 
-    private void OnDisable()
-    {
-        _health.OnDamaged -= HandleDamaged;
-        _health.OnDied -= HandleDied;
-    }
-
-    private void HandleDamaged(DamageInfo info)
-    {
-        if (_isKnockedOut) return;
-
-        // Play hit animation
-        if (_animator != null && !_health.IsDead)
+        private void Awake()
         {
-            _animator.SetTrigger("Hit");
+            _health = GetComponent<Health>();
+            _animator = GetComponentInChildren<Animator>();
         }
 
-        // Tell PoliceNPC to stun
-        PoliceNPC policeAI = GetComponent<PoliceNPC>();
-        if (policeAI != null)
+        private void OnEnable()
         {
-            policeAI.ApplyHitStun();
-        }
-    }
-
-    private void HandleDied()
-    {
-        if (_isKnockedOut) return;
-        _isKnockedOut = true;
-
-        // Tell PoliceNPC to enter knockout state
-        PoliceNPC policeAI = GetComponent<PoliceNPC>();
-        if (policeAI != null)
-        {
-            policeAI.SetState(PoliceNPC.PoliceState.KnockedOut);
+            _health.OnDamaged += HandleDamaged;
+            _health.OnDied += HandleDied;
         }
 
-        // Report crime — assaulting an officer is a serious crime
-        if (assaultOfficerCrimeType != null)
+        private void OnDisable()
         {
-            CrimeReporter.ReportCrime(assaultOfficerCrimeType, transform.position, gameObject);
-        }
-        else
-        {
-            Debug.LogWarning($"[PoliceHealth] '{gameObject.name}' has no assaultOfficerCrimeType assigned.", this);
+            _health.OnDamaged -= HandleDamaged;
+            _health.OnDied -= HandleDied;
         }
 
-        // Unregister from PoliceManager
-        if (PoliceManager.Instance != null)
+        private void HandleDamaged(DamageInfo info)
         {
-            PoliceManager.Instance.UnregisterPolice(gameObject);
+            if (_isKnockedOut) return;
+
+            if (_animator != null && !_health.IsDead)
+            {
+                _animator.SetTrigger("Hit");
+            }
+
+            PoliceNPC policeAI = GetComponent<PoliceNPC>();
+            if (policeAI != null)
+            {
+                policeAI.ApplyHitStun();
+            }
+        }
+
+        private void HandleDied()
+        {
+            if (_isKnockedOut) return;
+            _isKnockedOut = true;
+
+            PoliceNPC policeAI = GetComponent<PoliceNPC>();
+            if (policeAI != null)
+            {
+                policeAI.SetState(PoliceNPC.PoliceState.KnockedOut);
+            }
+
+            if (assaultOfficerCrimeType != null)
+            {
+                CrimeReporter.ReportCrime(assaultOfficerCrimeType, transform.position, gameObject);
+            }
+            else
+            {
+                Debug.LogWarning($"[PoliceHealth] '{gameObject.name}' has no assaultOfficerCrimeType assigned.", this);
+            }
+
+            if (PoliceManager.Instance != null)
+            {
+                PoliceManager.Instance.UnregisterPolice(gameObject);
+            }
         }
     }
 }

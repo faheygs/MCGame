@@ -2,76 +2,76 @@ using UnityEngine;
 using System.Collections;
 using MCGame.Core;
 
-// HUDVitalsPanel owns the health bar.
-// Fills and drains based on PlayerStats health.
-// Pulses red when health is critically low.
-
-public class HUDVitalsPanel : MonoBehaviour
+namespace MCGame.Gameplay.UI
 {
-    [Header("References")]
-    [SerializeField] private RectTransform hpBarFill;
-
-    [Header("Settings")]
-    [SerializeField] private float criticalHealthThreshold = 0.25f;
-    [SerializeField] private float pulseSpeed = 2f;
-    [SerializeField] private Color normalColor = new Color(0.753f, 0.224f, 0.169f);
-    [SerializeField] private Color pulseColor = new Color(1f, 0.1f, 0.1f);
-
-    [Header("Data")]
-    [SerializeField] private PlayerStats playerStats;
-
-    private UnityEngine.UI.Image _hpBarImage;
-    private bool _isCritical;
-    private float _pulseTimer;
-
-    private void Awake()
+    // HUDVitalsPanel owns the health bar.
+    public class HUDVitalsPanel : MonoBehaviour
     {
-        _hpBarImage = hpBarFill.GetComponent<UnityEngine.UI.Image>();
-    }
+        [Header("References")]
+        [SerializeField] private RectTransform hpBarFill;
 
-    private void OnEnable()
-    {
-        playerStats.OnHealthChanged += HandleHealthChanged;
-    }
+        [Header("Settings")]
+        [SerializeField] private float criticalHealthThreshold = 0.25f;
+        [SerializeField] private float pulseSpeed = 2f;
+        [SerializeField] private Color normalColor = new Color(0.753f, 0.224f, 0.169f);
+        [SerializeField] private Color pulseColor = new Color(1f, 0.1f, 0.1f);
 
-    private void OnDisable()
-    {
-        playerStats.OnHealthChanged -= HandleHealthChanged;
-    }
+        [Header("Data")]
+        [SerializeField] private PlayerStats playerStats;
 
-    private void Start()
-    {
-        UpdateBar(playerStats.Health);
-    }
+        private UnityEngine.UI.Image _hpBarImage;
+        private bool _isCritical;
+        private float _pulseTimer;
 
-    private void Update()
-    {
-        if (_isCritical)
-            PulseBar();
-    }
+        private void Awake()
+        {
+            _hpBarImage = hpBarFill.GetComponent<UnityEngine.UI.Image>();
+        }
 
-    private void HandleHealthChanged(float newHealth)
-    {
-        UpdateBar(newHealth);
-        _isCritical = (newHealth / playerStats.MaxHealth) <= criticalHealthThreshold;
+        private void OnEnable()
+        {
+            playerStats.OnHealthChanged += HandleHealthChanged;
+        }
 
-        if (!_isCritical)
-            _hpBarImage.color = normalColor;
-    }
+        private void OnDisable()
+        {
+            playerStats.OnHealthChanged -= HandleHealthChanged;
+        }
 
-    private void UpdateBar(float health)
-    {
-        float fill = Mathf.Clamp01(health / playerStats.MaxHealth);
-        hpBarFill.anchorMin = new Vector2(0, 0);
-        hpBarFill.anchorMax = new Vector2(fill, 1);
-        hpBarFill.offsetMin = Vector2.zero;
-        hpBarFill.offsetMax = Vector2.zero;
-    }
+        private void Start()
+        {
+            UpdateBar(playerStats.Health);
+        }
 
-    private void PulseBar()
-    {
-        _pulseTimer += Time.deltaTime * pulseSpeed;
-        float t = (Mathf.Sin(_pulseTimer) + 1f) / 2f;
-        _hpBarImage.color = Color.Lerp(normalColor, pulseColor, t);
+        private void Update()
+        {
+            if (_isCritical)
+                PulseBar();
+        }
+
+        private void HandleHealthChanged(float newHealth)
+        {
+            UpdateBar(newHealth);
+            _isCritical = (newHealth / playerStats.MaxHealth) <= criticalHealthThreshold;
+
+            if (!_isCritical)
+                _hpBarImage.color = normalColor;
+        }
+
+        private void UpdateBar(float health)
+        {
+            float fill = Mathf.Clamp01(health / playerStats.MaxHealth);
+            hpBarFill.anchorMin = new Vector2(0, 0);
+            hpBarFill.anchorMax = new Vector2(fill, 1);
+            hpBarFill.offsetMin = Vector2.zero;
+            hpBarFill.offsetMax = Vector2.zero;
+        }
+
+        private void PulseBar()
+        {
+            _pulseTimer += Time.deltaTime * pulseSpeed;
+            float t = (Mathf.Sin(_pulseTimer) + 1f) / 2f;
+            _hpBarImage.color = Color.Lerp(normalColor, pulseColor, t);
+        }
     }
 }

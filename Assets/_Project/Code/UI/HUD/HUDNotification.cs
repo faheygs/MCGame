@@ -4,63 +4,63 @@ using UnityEngine.UI;
 using System.Collections;
 using System;
 
-public class HUDNotification : MonoBehaviour
+namespace MCGame.Gameplay.UI
 {
-    [Header("References")]
-    [SerializeField] private TextMeshProUGUI notificationText;
-    [SerializeField] private Image accentImage;
-
-    [Header("Settings")]
-    [SerializeField] private float fadeInDuration = 0.2f;
-    [SerializeField] private float holdDuration = 3f;
-    [SerializeField] private float fadeOutDuration = 0.3f;
-
-    public Action OnComplete;
-
-    private CanvasGroup _canvasGroup;
-
-    private void Awake()
+    public class HUDNotification : MonoBehaviour
     {
-        _canvasGroup = GetComponent<CanvasGroup>();
-        if (_canvasGroup == null)
-            _canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        [Header("References")]
+        [SerializeField] private TextMeshProUGUI notificationText;
+        [SerializeField] private Image accentImage;
 
-        _canvasGroup.alpha = 0f;
-    }
+        [Header("Settings")]
+        [SerializeField] private float fadeInDuration = 0.2f;
+        [SerializeField] private float holdDuration = 3f;
+        [SerializeField] private float fadeOutDuration = 0.3f;
 
-    public void Show(string message, Color accentColor)
-    {
-        notificationText.text = message;
-        accentImage.color = accentColor;
-        StartCoroutine(NotificationRoutine());
-    }
+        public Action OnComplete;
 
-    private IEnumerator NotificationRoutine()
-    {
-        // Fade in
-        float elapsed = 0f;
-        while (elapsed < fadeInDuration)
+        private CanvasGroup _canvasGroup;
+
+        private void Awake()
         {
-            elapsed += Time.deltaTime;
-            _canvasGroup.alpha = Mathf.Clamp01(elapsed / fadeInDuration);
-            yield return null;
+            _canvasGroup = GetComponent<CanvasGroup>();
+            if (_canvasGroup == null)
+                _canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
+            _canvasGroup.alpha = 0f;
         }
-        _canvasGroup.alpha = 1f;
 
-        // Hold
-        yield return new WaitForSeconds(holdDuration);
-
-        // Fade out
-        elapsed = 0f;
-        while (elapsed < fadeOutDuration)
+        public void Show(string message, Color accentColor)
         {
-            elapsed += Time.deltaTime;
-            _canvasGroup.alpha = 1f - Mathf.Clamp01(elapsed / fadeOutDuration);
-            yield return null;
+            notificationText.text = message;
+            accentImage.color = accentColor;
+            StartCoroutine(NotificationRoutine());
         }
-        _canvasGroup.alpha = 0f;
 
-        OnComplete?.Invoke();
-        Destroy(gameObject);
+        private IEnumerator NotificationRoutine()
+        {
+            float elapsed = 0f;
+            while (elapsed < fadeInDuration)
+            {
+                elapsed += Time.deltaTime;
+                _canvasGroup.alpha = Mathf.Clamp01(elapsed / fadeInDuration);
+                yield return null;
+            }
+            _canvasGroup.alpha = 1f;
+
+            yield return new WaitForSeconds(holdDuration);
+
+            elapsed = 0f;
+            while (elapsed < fadeOutDuration)
+            {
+                elapsed += Time.deltaTime;
+                _canvasGroup.alpha = 1f - Mathf.Clamp01(elapsed / fadeOutDuration);
+                yield return null;
+            }
+            _canvasGroup.alpha = 0f;
+
+            OnComplete?.Invoke();
+            Destroy(gameObject);
+        }
     }
 }
