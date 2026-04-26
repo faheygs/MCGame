@@ -20,9 +20,6 @@ namespace MCGame.Gameplay.UI
         [Header("Heat")]
         [SerializeField] private HUDHeatPanel heatPanel;
 
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         // -----------------------------------------------------------------
         // Lifecycle
         // -----------------------------------------------------------------
