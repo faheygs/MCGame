@@ -497,78 +497,11 @@ namespace MCGame.Gameplay.Police
 
             _bustStreakDecayTimer = 0f;
 
-            RespawnPlayerAtCompound();
+            RespawnService.RespawnPlayer();
 
             _processingBust = false;
 
             Debug.Log($"[PoliceManager] Bust complete. Streak: {streak}, Lay-low: {layLowDuration}s");
-        }
-
-        private void RespawnPlayerAtCompound()
-        {
-            // NOTE: This method is doing GameManager-level work (player reset, animator reset, etc.)
-            // It will be extracted to RespawnService in Phase A7.
-            // Migration in A5.3c only swaps PlayerStats → PlayerDataController; refactor of responsibility
-            // is deferred to keep scope minimal.
-
-            PlayerController player = PlayerService.Player;
-            if (player == null) return;
-
-            SpawnPoint[] spawnPoints = FindObjectsByType<SpawnPoint>(FindObjectsInactive.Exclude);
-            Vector3 respawnPos = Vector3.zero;
-            bool foundSpawn = false;
-
-            foreach (SpawnPoint sp in spawnPoints)
-            {
-                if (sp.Type == SpawnPoint.SpawnType.PlayerStart)
-                {
-                    respawnPos = sp.Position;
-                    foundSpawn = true;
-                    break;
-                }
-            }
-
-            if (!foundSpawn)
-                Debug.LogWarning("[PoliceManager] No PlayerStart spawn point found. Respawning at origin.");
-
-            CharacterController cc = player.GetComponent<CharacterController>();
-            if (cc != null) cc.enabled = false;
-
-            player.transform.position = respawnPos;
-
-            if (cc != null) cc.enabled = true;
-
-            Health playerHealth = player.GetComponent<Health>();
-            if (playerHealth != null)
-                playerHealth.Reset();
-
-            // Heal player to full via PlayerDataController
-            if (PlayerDataController.Instance != null)
-                PlayerDataController.Instance.HealToFull();
-
-            Animator playerAnimator = player.GetComponentInChildren<Animator>();
-            if (playerAnimator != null)
-            {
-                playerAnimator.ResetTrigger("Knockout");
-                playerAnimator.ResetTrigger("Hit");
-
-                for (int i = 0; i < playerAnimator.layerCount; i++)
-                    playerAnimator.Play("Empty", i, 0f);
-
-                playerAnimator.Play("Idle", 0, 0f);
-            }
-
-            player.enabled = true;
-
-            PlayerCombat combat = player.GetComponent<PlayerCombat>();
-            if (combat != null)
-            {
-                combat.StopAllCoroutines();
-                combat.enabled = false;
-                combat.enabled = true;
-            }
-
-            Debug.Log($"[PoliceManager] Player respawned at {respawnPos}");
         }
     }
 }
