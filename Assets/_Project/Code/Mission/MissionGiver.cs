@@ -23,9 +23,6 @@ namespace MCGame.Gameplay.Mission
         [Tooltip("Higher priority wins over lower interactables when both are in range.")]
         [SerializeField] private int priority = 5;
 
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         private Transform _player;
         private bool _isBlinking;
         private bool _isRegistered;
@@ -150,7 +147,7 @@ namespace MCGame.Gameplay.Mission
             if (PlayerStateManager.Instance != null && PlayerStateManager.Instance.IsInVehicle)
                 return false;
 
-            if (playerStats != null && playerStats.IsLayingLow)
+            if (PlayerDataController.Instance != null && PlayerDataController.Instance.IsLayingLow)
                 return false;
 
             return true;

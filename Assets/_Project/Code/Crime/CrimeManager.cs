@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using MCGame.Core;
+using MCGame.Gameplay.Player;
 
 namespace MCGame.Gameplay.Crime
 {
@@ -9,9 +10,6 @@ namespace MCGame.Gameplay.Crime
     /// </summary>
     public class CrimeManager : Singleton<CrimeManager>
     {
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         [Header("Witness Detection")]
         [Tooltip("Maximum distance (meters) an NPC can witness a crime from")]
         [Range(5f, 50f)]
@@ -29,30 +27,30 @@ namespace MCGame.Gameplay.Crime
         public float WitnessDetectionRadius => witnessDetectionRadius;
         public LayerMask WitnessLayerMask => witnessLayerMask;
         public LayerMask ObstructionLayerMask => obstructionLayerMask;
-        public PlayerStats PlayerStats => playerStats;
 
         private void Start()
         {
-            if (playerStats == null)
+            if (PlayerDataController.Instance == null)
             {
-                Debug.LogError("[CrimeManager] PlayerStats not assigned! Crime system will not function.", this);
+                Debug.LogError("[CrimeManager] PlayerDataController not found in scene. Crime system will not function.", this);
             }
         }
 
         public void HandleCrimeReported(CrimeType crimeType, Vector3 crimePosition)
         {
-            if (crimeType == null || playerStats == null) return;
+            if (crimeType == null) return;
+            if (PlayerDataController.Instance == null) return;
 
-            if (playerStats.IsLayingLow)
+            if (PlayerDataController.Instance.IsLayingLow)
             {
-                playerStats.ExtendLayLow(playerStats.LayLowTimeRemaining);
+                PlayerDataController.Instance.ExtendLayLow(PlayerDataController.Instance.LayLowTimeRemaining);
                 Debug.Log($"[CrimeManager] Crime during lay-low! Timer doubled.");
             }
 
-            playerStats.AddHeat(crimeType.baseHeatAmount);
+            PlayerDataController.Instance.AddHeat(crimeType.baseHeatAmount);
 
             Debug.Log($"[CrimeManager] Crime '{crimeType.crimeName}' witnessed. " +
-                    $"+{crimeType.baseHeatAmount} heat. Current: {playerStats.HeatLevel}");
+                    $"+{crimeType.baseHeatAmount} heat. Current: {PlayerDataController.Instance.HeatLevel}");
 
             OnCrimeReported?.Invoke(crimeType, crimePosition);
         }

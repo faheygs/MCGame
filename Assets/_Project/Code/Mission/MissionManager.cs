@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using MCGame.Core;
+using MCGame.Gameplay.Player;
 using MCGame.Gameplay.UI;
 
 namespace MCGame.Gameplay.Mission
@@ -18,9 +19,6 @@ namespace MCGame.Gameplay.Mission
 
         [Header("Objective")]
         [SerializeField] private GameObject missionObjectivePrefab;
-
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
 
         private Dictionary<string, MissionState> _missionStates = new();
         private MissionData _currentMission;
@@ -59,17 +57,17 @@ namespace MCGame.Gameplay.Mission
 
             _missionStates[_currentMission.missionName] = MissionState.Completed;
 
-            if (playerStats != null)
+            if (PlayerDataController.Instance != null)
             {
                 if (_currentMission.moneyReward > 0)
-                    playerStats.AddMoney(_currentMission.moneyReward);
+                    PlayerDataController.Instance.AddMoney(_currentMission.moneyReward);
 
                 if (_currentMission.reputationReward > 0)
-                    playerStats.AddReputation(_currentMission.reputationReward);
-            }
+                    PlayerDataController.Instance.AddReputation(_currentMission.reputationReward);
 
-            if (playerStats != null && _currentMission.moneyCost > 0)
-                playerStats.AddMoney(-_currentMission.moneyCost);
+                if (_currentMission.moneyCost > 0)
+                    PlayerDataController.Instance.RemoveMoney(_currentMission.moneyCost);
+            }
 
             if (_currentMission.missionsToUnlockOnComplete != null)
             {

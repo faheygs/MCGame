@@ -15,9 +15,6 @@ namespace MCGame.Gameplay.Police
     /// </summary>
     public class PoliceManager : Singleton<PoliceManager>
     {
-        [Header("Data")]
-        [SerializeField] private PlayerStats playerStats;
-
         [Header("Corruption")]
         [Tooltip("Current corruption level.\n0 = No protection\n1 = Ignore severity 1\n2 = Ignore severity 1-2\n3 = Full local protection")]
         [Range(0, 3)]
@@ -39,19 +36,6 @@ namespace MCGame.Gameplay.Police
         [Tooltip("Seconds between reinforcement checks when heat stays high")]
         [SerializeField] private float reinforcementInterval = 15f;
 
-        [Header("Bust Consequences")]
-        [Tooltip("Lay-low duration in seconds for each bust level")]
-        [SerializeField] private float[] layLowDurations = { 120f, 300f, 600f };
-
-        [Tooltip("Money loss percentage for each bust level")]
-        [SerializeField] private float[] moneyPenalties = { 0.15f, 0.30f, 0.50f };
-
-        [Tooltip("Rep loss for each bust level")]
-        [SerializeField] private int[] repPenalties = { 50, 150, 300 };
-
-        [Tooltip("Seconds of clean play before bust streak decays by 1")]
-        [SerializeField] private float bustStreakDecayTime = 1200f;
-
         public event Action<int> OnPoliceCountChanged;
         public event Action<CrimeType> OnCrimeSuppressedByCorruption;
 
@@ -65,39 +49,31 @@ namespace MCGame.Gameplay.Police
 
         public int CorruptionLevel => corruptionLevel;
         public int ActivePoliceCount => _activePolice.Count;
+
         private void OnEnable()
         {
             if (CrimeManager.Instance != null)
-            {
                 CrimeManager.Instance.OnCrimeReported += HandleCrimeReported;
-            }
 
-            if (playerStats != null)
-            {
-                playerStats.OnHeatChanged += HandleHeatChanged;
-            }
+            if (PlayerDataController.Instance != null)
+                PlayerDataController.Instance.OnHeatChanged += HandleHeatChanged;
         }
 
         private void OnDisable()
         {
             if (CrimeManager.Instance != null)
-            {
                 CrimeManager.Instance.OnCrimeReported -= HandleCrimeReported;
-            }
 
-            if (playerStats != null)
-            {
-                playerStats.OnHeatChanged -= HandleHeatChanged;
-            }
+            if (PlayerDataController.Instance != null)
+                PlayerDataController.Instance.OnHeatChanged -= HandleHeatChanged;
 
             if (_playerHealth != null)
-            {
                 _playerHealth.OnDied -= HandlePlayerDied;
-            }
         }
 
         private void Start()
         {
+            // Defensive re-subscription in case OnEnable fired before these singletons existed
             if (CrimeManager.Instance != null)
             {
                 CrimeManager.Instance.OnCrimeReported -= HandleCrimeReported;
@@ -108,9 +84,14 @@ namespace MCGame.Gameplay.Police
                 Debug.LogError("[PoliceManager] CrimeManager not found. Police will not respond to crimes.", this);
             }
 
-            if (playerStats == null)
+            if (PlayerDataController.Instance != null)
             {
-                Debug.LogError("[PoliceManager] PlayerStats not assigned.", this);
+                PlayerDataController.Instance.OnHeatChanged -= HandleHeatChanged;
+                PlayerDataController.Instance.OnHeatChanged += HandleHeatChanged;
+            }
+            else
+            {
+                Debug.LogError("[PoliceManager] PlayerDataController not found.", this);
             }
 
             PlayerController playerController = FindAnyObjectByType<PlayerController>();
@@ -118,34 +99,34 @@ namespace MCGame.Gameplay.Police
             {
                 _playerHealth = playerController.GetComponent<Health>();
                 if (_playerHealth != null)
-                {
                     _playerHealth.OnDied += HandlePlayerDied;
-                }
             }
         }
 
         private void Update()
         {
             if (_currentHeatLevel > 0)
-            {
                 HandleReinforcements();
-            }
 
             CleanupDestroyedPolice();
             HandleDistanceDespawn();
 
-            if (playerStats != null && playerStats.IsLayingLow)
-            {
-                playerStats.UpdateLayLowTimer(Time.deltaTime);
-            }
+            if (PlayerDataController.Instance != null && PlayerDataController.Instance.IsLayingLow)
+                PlayerDataController.Instance.UpdateLayLowTimer(Time.deltaTime);
 
-            if (playerStats != null && playerStats.BustStreak > 0 && !playerStats.IsLayingLow)
+            if (PlayerDataController.Instance != null &&
+                PlayerDataController.Instance.BustStreak > 0 &&
+                !PlayerDataController.Instance.IsLayingLow)
             {
+                float decayTime = PlayerDataController.Instance.Config != null
+                    ? PlayerDataController.Instance.Config.bustStreakDecayTime
+                    : 1200f;
+
                 _bustStreakDecayTimer += Time.deltaTime;
-                if (_bustStreakDecayTimer >= bustStreakDecayTime)
+                if (_bustStreakDecayTimer >= decayTime)
                 {
                     _bustStreakDecayTimer = 0f;
-                    playerStats.DecrementBustStreak();
+                    PlayerDataController.Instance.DecrementBustStreak();
                 }
             }
         }
@@ -309,9 +290,7 @@ namespace MCGame.Gameplay.Police
             }
 
             if (bestSpawn != null)
-            {
                 return bestSpawn.Position;
-            }
 
             Debug.LogWarning("[PoliceManager] No valid Police spawn points found. Using fallback position.");
             Vector3 randomDirection = UnityEngine.Random.insideUnitSphere;
@@ -336,13 +315,9 @@ namespace MCGame.Gameplay.Police
 
                     PoliceNPC policeAI = _activePolice[i].GetComponent<PoliceNPC>();
                     if (policeAI != null)
-                    {
                         policeAI.Disengage();
-                    }
                     else
-                    {
                         Destroy(_activePolice[i]);
-                    }
                 }
             }
 
@@ -366,9 +341,7 @@ namespace MCGame.Gameplay.Police
             if (_policeMarkerIds.TryGetValue(policeObj, out int markerId))
             {
                 if (MinimapMarkerManager.Instance != null)
-                {
                     MinimapMarkerManager.Instance.UnregisterMissionMarker(markerId);
-                }
                 _policeMarkerIds.Remove(policeObj);
             }
         }
@@ -413,9 +386,7 @@ namespace MCGame.Gameplay.Police
             for (int i = _activePolice.Count - 1; i >= 0; i--)
             {
                 if (_activePolice[i] == null)
-                {
                     _activePolice.RemoveAt(i);
-                }
             }
         }
 
@@ -426,6 +397,7 @@ namespace MCGame.Gameplay.Police
         private void HandlePlayerDied()
         {
             if (_playerHealth == null) return;
+            if (PlayerDataController.Instance == null) return;
 
             GameObject source = _playerHealth.LastDamageSource;
             if (source != null && source.GetComponent<PoliceNPC>() != null)
@@ -443,10 +415,8 @@ namespace MCGame.Gameplay.Police
                 _activePolice.Clear();
                 _policeMarkerIds.Clear();
 
-                while (playerStats.HeatLevel > 0)
-                {
-                    playerStats.RemoveHeat(1);
-                }
+                while (PlayerDataController.Instance.HeatLevel > 0)
+                    PlayerDataController.Instance.RemoveHeat(1);
                 _currentHeatLevel = 0;
 
                 StartCoroutine(BustSequence());
@@ -502,22 +472,27 @@ namespace MCGame.Gameplay.Police
 
             yield return new WaitForSeconds(1f);
 
-            playerStats.IncrementBustStreak();
-            int streak = playerStats.BustStreak;
-            int consequenceIndex = Mathf.Min(streak - 1, 2);
-
-            playerStats.LoseMoney(moneyPenalties[consequenceIndex]);
-            playerStats.LoseReputation(repPenalties[consequenceIndex]);
-
-            float layLowDuration = layLowDurations[consequenceIndex];
-            if (playerStats.IsLayingLow)
+            // Apply bust consequences from PlayerConfig (designer-tuned)
+            PlayerConfig config = PlayerDataController.Instance.Config;
+            if (config == null)
             {
-                playerStats.ExtendLayLow(layLowDuration);
+                Debug.LogError("[PoliceManager] PlayerConfig not assigned to PlayerDataController. Cannot apply bust consequences.");
+                _processingBust = false;
+                yield break;
             }
+
+            PlayerDataController.Instance.IncrementBustStreak();
+            int streak = PlayerDataController.Instance.BustStreak;
+            int consequenceIndex = config.GetBustConsequenceIndex(streak);
+
+            PlayerDataController.Instance.LoseMoneyPercent(config.moneyPenalties[consequenceIndex]);
+            PlayerDataController.Instance.LoseReputation(config.repPenalties[consequenceIndex]);
+
+            float layLowDuration = config.layLowDurations[consequenceIndex];
+            if (PlayerDataController.Instance.IsLayingLow)
+                PlayerDataController.Instance.ExtendLayLow(layLowDuration);
             else
-            {
-                playerStats.StartLayLow(layLowDuration);
-            }
+                PlayerDataController.Instance.StartLayLow(layLowDuration);
 
             _bustStreakDecayTimer = 0f;
 
@@ -530,6 +505,11 @@ namespace MCGame.Gameplay.Police
 
         private void RespawnPlayerAtCompound()
         {
+            // NOTE: This method is doing GameManager-level work (player reset, animator reset, etc.)
+            // It will be extracted to RespawnService in Phase A7.
+            // Migration in A5.3c only swaps PlayerStats → PlayerDataController; refactor of responsibility
+            // is deferred to keep scope minimal.
+
             PlayerController player = FindAnyObjectByType<PlayerController>();
             if (player == null) return;
 
@@ -548,9 +528,7 @@ namespace MCGame.Gameplay.Police
             }
 
             if (!foundSpawn)
-            {
                 Debug.LogWarning("[PoliceManager] No PlayerStart spawn point found. Respawning at origin.");
-            }
 
             CharacterController cc = player.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = false;
@@ -561,9 +539,11 @@ namespace MCGame.Gameplay.Police
 
             Health playerHealth = player.GetComponent<Health>();
             if (playerHealth != null)
-            {
                 playerHealth.Reset();
-            }
+
+            // Heal player to full via PlayerDataController
+            if (PlayerDataController.Instance != null)
+                PlayerDataController.Instance.HealToFull();
 
             Animator playerAnimator = player.GetComponentInChildren<Animator>();
             if (playerAnimator != null)
@@ -572,9 +552,7 @@ namespace MCGame.Gameplay.Police
                 playerAnimator.ResetTrigger("Hit");
 
                 for (int i = 0; i < playerAnimator.layerCount; i++)
-                {
                     playerAnimator.Play("Empty", i, 0f);
-                }
 
                 playerAnimator.Play("Idle", 0, 0f);
             }
