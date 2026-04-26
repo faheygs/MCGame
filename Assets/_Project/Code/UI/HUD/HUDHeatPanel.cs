@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using MCGame.Core;
 
 // HUDHeatPanel controls heat visuals via the minimap border.
 // Border pulses faster and more aggressively as heat increases.

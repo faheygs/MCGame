@@ -1,84 +1,87 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[CreateAssetMenu(fileName = "InputReader", menuName = "MCGame/Input Reader")]
-public class InputReader : ScriptableObject, PlayerInputActions.IPlayerActions
+namespace MCGame.Input
 {
-    public Vector2 MoveInput { get; private set; }
-    public Vector2 LookInput { get; private set; }
-    public bool SprintInput { get; private set; }
-    public bool InteractInput { get; private set; }
-
-    // One-shot events — fire once on button press (rising edge)
-    public event System.Action InteractPressed;
-    public event System.Action LightAttackPressed;
-    public event System.Action HeavyAttackPressed;
-
-    private PlayerInputActions _inputActions;
-
-    private void OnEnable()
+    [CreateAssetMenu(fileName = "InputReader", menuName = "MCGame/Input Reader")]
+    public class InputReader : ScriptableObject, PlayerInputActions.IPlayerActions
     {
-        if (_inputActions == null)
+        public Vector2 MoveInput { get; private set; }
+        public Vector2 LookInput { get; private set; }
+        public bool SprintInput { get; private set; }
+        public bool InteractInput { get; private set; }
+
+        // One-shot events — fire once on button press (rising edge)
+        public event System.Action InteractPressed;
+        public event System.Action LightAttackPressed;
+        public event System.Action HeavyAttackPressed;
+
+        private PlayerInputActions _inputActions;
+
+        private void OnEnable()
         {
-            _inputActions = new PlayerInputActions();
-            _inputActions.Player.SetCallbacks(this);
-        }
-        _inputActions.Player.Enable();
-    }
-
-    private void OnDisable()
-    {
-        _inputActions.Player.Disable();
-    }
-
-    public void OnMove(InputAction.CallbackContext context)
-    {
-        MoveInput = context.ReadValue<Vector2>();
-    }
-
-    public void OnLook(InputAction.CallbackContext context)
-    {
-        LookInput = context.ReadValue<Vector2>();
-    }
-
-    public void OnSprint(InputAction.CallbackContext context)
-    {
-        SprintInput = context.ReadValueAsButton();
-    }
-
-    public void OnInteract(InputAction.CallbackContext context)
-    {
-        InteractInput = context.ReadValueAsButton();
-
-        if (context.performed)
-            InteractPressed?.Invoke();
-    }
-
-    public void OnLightAttack(InputAction.CallbackContext context)
-    {
-        if (context.performed)
-            LightAttackPressed?.Invoke();
-    }
-
-    public void OnHeavyAttack(InputAction.CallbackContext context)
-    {
-        if (context.performed)
-            HeavyAttackPressed?.Invoke();
-    }
-
-    public void SetInputEnabled(bool enabled)
-    {
-        if (enabled)
-        {
-            LookInput = Vector2.zero;
+            if (_inputActions == null)
+            {
+                _inputActions = new PlayerInputActions();
+                _inputActions.Player.SetCallbacks(this);
+            }
             _inputActions.Player.Enable();
         }
-        else
-            _inputActions.Player.Disable();
-    }
 
-    public void ResetLookInput()
-    {
-        LookInput = Vector2.zero;
+        private void OnDisable()
+        {
+            _inputActions.Player.Disable();
+        }
+
+        public void OnMove(InputAction.CallbackContext context)
+        {
+            MoveInput = context.ReadValue<Vector2>();
+        }
+
+        public void OnLook(InputAction.CallbackContext context)
+        {
+            LookInput = context.ReadValue<Vector2>();
+        }
+
+        public void OnSprint(InputAction.CallbackContext context)
+        {
+            SprintInput = context.ReadValueAsButton();
+        }
+
+        public void OnInteract(InputAction.CallbackContext context)
+        {
+            InteractInput = context.ReadValueAsButton();
+
+            if (context.performed)
+                InteractPressed?.Invoke();
+        }
+
+        public void OnLightAttack(InputAction.CallbackContext context)
+        {
+            if (context.performed)
+                LightAttackPressed?.Invoke();
+        }
+
+        public void OnHeavyAttack(InputAction.CallbackContext context)
+        {
+            if (context.performed)
+                HeavyAttackPressed?.Invoke();
+        }
+
+        public void SetInputEnabled(bool enabled)
+        {
+            if (enabled)
+            {
+                LookInput = Vector2.zero;
+                _inputActions.Player.Enable();
+            }
+            else
+                _inputActions.Player.Disable();
+        }
+
+        public void ResetLookInput()
+        {
+            LookInput = Vector2.zero;
+        }
     }
 }

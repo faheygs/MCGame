@@ -1,4 +1,5 @@
 using UnityEngine;
+using MCGame.Combat;
 
 /// <summary>
 /// AI state machine for police NPCs. Handles pursuit, engagement,

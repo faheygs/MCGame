@@ -1,57 +1,60 @@
 using UnityEngine;
 
-// HeatCooldown passively reduces heat over time when the player is not
-// triggering heat events. Timer resets if heat increases while cooling down.
-
-public class HeatCooldown : MonoBehaviour
+namespace MCGame.Core
 {
-    [Header("Settings")]
-    [SerializeField] private float cooldownTime = 15f;
+    // HeatCooldown passively reduces heat over time when the player is not
+    // triggering heat events. Timer resets if heat increases while cooling down.
 
-    [Header("Data")]
-    [SerializeField] private PlayerStats playerStats;
-
-    private float _timer;
-
-    /// <summary>
-    /// Public accessor for PlayerStats. Used by CrimeReporter.
-    /// </summary>
-    public PlayerStats GetPlayerStats()
+    public class HeatCooldown : MonoBehaviour
     {
-        return playerStats;
-    }
+        [Header("Settings")]
+        [SerializeField] private float cooldownTime = 15f;
 
-    private void OnEnable()
-    {
-        playerStats.OnHeatChanged += HandleHeatChanged;
-    }
+        [Header("Data")]
+        [SerializeField] private PlayerStats playerStats;
 
-    private void OnDisable()
-    {
-        playerStats.OnHeatChanged -= HandleHeatChanged;
-    }
+        private float _timer;
 
-    private void Update()
-    {
-        if (playerStats.HeatLevel <= 0)
+        /// <summary>
+        /// Public accessor for PlayerStats. Used by CrimeReporter.
+        /// </summary>
+        public PlayerStats GetPlayerStats()
         {
-            _timer = 0f;
-            return;
+            return playerStats;
         }
 
-        _timer += Time.deltaTime;
-
-        if (_timer >= cooldownTime)
+        private void OnEnable()
         {
-            _timer = 0f;
-            playerStats.RemoveHeat(1);
+            playerStats.OnHeatChanged += HandleHeatChanged;
         }
-    }
 
-    private void HandleHeatChanged(int newLevel)
-    {
-        // Reset timer any time heat changes — whether up or down
-        // This means adding heat while cooling resets the countdown
-        _timer = 0f;
+        private void OnDisable()
+        {
+            playerStats.OnHeatChanged -= HandleHeatChanged;
+        }
+
+        private void Update()
+        {
+            if (playerStats.HeatLevel <= 0)
+            {
+                _timer = 0f;
+                return;
+            }
+
+            _timer += Time.deltaTime;
+
+            if (_timer >= cooldownTime)
+            {
+                _timer = 0f;
+                playerStats.RemoveHeat(1);
+            }
+        }
+
+        private void HandleHeatChanged(int newLevel)
+        {
+            // Reset timer any time heat changes — whether up or down
+            // This means adding heat while cooling resets the countdown
+            _timer = 0f;
+        }
     }
 }

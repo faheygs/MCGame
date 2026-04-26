@@ -1,4 +1,5 @@
 using UnityEngine;
+using MCGame.Core;
 
 [CreateAssetMenu(fileName = "MissionData", menuName = "MCGame/Mission Data")]
 public class MissionData : ScriptableObject

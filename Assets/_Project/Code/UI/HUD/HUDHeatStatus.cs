@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using System.Collections;
+using MCGame.Core;
 
 // HUDHeatStatus shows subtle heat state text under the minimap.
 // Flashes briefly when heat changes, persists when at max heat.

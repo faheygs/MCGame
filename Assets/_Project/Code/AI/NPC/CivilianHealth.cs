@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using MCGame.Combat;
 
 /// <summary>
 /// Bridges Health component on civilians to the crime reporting system.

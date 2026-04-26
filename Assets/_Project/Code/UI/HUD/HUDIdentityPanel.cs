@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using MCGame.Core;
 
 // HUDIdentityPanel owns the bottom-left identity cluster.
 // Displays money, rank, patch icon, and rep bar.

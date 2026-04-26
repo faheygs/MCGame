@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections;
+using MCGame.Input;
+using MCGame.Combat;
 
 /// <summary>
 /// Handles all player combat — attacking AND taking hits.

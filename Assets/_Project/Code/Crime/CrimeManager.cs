@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using MCGame.Core;
 
 /// <summary>
 /// Central manager for the crime detection pipeline.

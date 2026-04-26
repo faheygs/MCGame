@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using MCGame.Core;
 
 /// <summary>
 /// Shows lay-low countdown timer near the minimap.

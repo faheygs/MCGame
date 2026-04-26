@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections;
+using MCGame.Combat;
 
 /// <summary>
 /// Simple enemy AI for melee combat.

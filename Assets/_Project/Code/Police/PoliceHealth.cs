@@ -1,4 +1,5 @@
 using UnityEngine;
+using MCGame.Combat;
 
 /// <summary>
 /// Bridges Health component on police NPCs to the crime system.

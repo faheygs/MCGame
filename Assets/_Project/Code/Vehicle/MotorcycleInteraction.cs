@@ -1,4 +1,5 @@
 using UnityEngine;
+using MCGame.Core;
 
 /// <summary>
 /// Handles player proximity and mount/dismount coordination for a single motorcycle.

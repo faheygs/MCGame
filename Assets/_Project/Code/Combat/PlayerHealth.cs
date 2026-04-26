@@ -1,4 +1,6 @@
 using UnityEngine;
+using MCGame.Core;
+using MCGame.Combat;
 
 /// <summary>
 /// Bridges the Health component on the player to PlayerStats.

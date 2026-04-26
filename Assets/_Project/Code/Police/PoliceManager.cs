@@ -1,6 +1,9 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using MCGame.Core;
+using MCGame.World;
+using MCGame.Combat;
 
 /// <summary>
 /// Manages law enforcement response to criminal activity.

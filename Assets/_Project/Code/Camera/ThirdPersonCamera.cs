@@ -1,4 +1,5 @@
 using UnityEngine;
+using MCGame.Input;
 
 public class ThirdPersonCamera : MonoBehaviour
 {

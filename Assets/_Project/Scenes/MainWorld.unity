@@ -5276,7 +5276,6 @@ MonoBehaviour:
   - 0.5
   repPenalties: 32000000960000002c010000
   bustStreakDecayTime: 1200
-  bustRespawnDelay: 3
 --- !u!1 &1192688665
 GameObject:
   m_ObjectHideFlags: 0
@@ -8771,7 +8770,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2444980374173395037, guid: 9b216158834828d4cbd5c1813c3958b9, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 145.5
+      value: 7.07
       objectReference: {fileID: 0}
     - target: {fileID: 2444980374173395037, guid: 9b216158834828d4cbd5c1813c3958b9, type: 3}
       propertyPath: m_LocalRotation.w

@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using MCGame.Core;
 
 /// <summary>
 /// Displays distance to active waypoint near the minimap.

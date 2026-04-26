@@ -1,4 +1,5 @@
 using UnityEngine;
+using MCGame.Core;
 
 // HUDManager is the single entry point for all HUD operations.
 // All game systems call HUDManager — never touch panel scripts directly.

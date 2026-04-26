@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
+using MCGame.Core;
+using MCGame.Input;
 
 /// <summary>
 /// Fullscreen map overlay. Opens/closes with M.

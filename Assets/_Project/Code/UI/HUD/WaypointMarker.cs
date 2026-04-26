@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using MCGame.Core;
 
 // WaypointMarker shows an on-screen indicator pointing to the active mission objective.
 // When the objective is on screen it sits over it.

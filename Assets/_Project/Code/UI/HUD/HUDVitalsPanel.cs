@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using MCGame.Core;
 
 // HUDVitalsPanel owns the health bar.
 // Fills and drains based on PlayerStats health.

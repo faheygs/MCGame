@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Collections;
+using MCGame.Core;
 
 public class MinimapMarkerManager : MonoBehaviour
 {

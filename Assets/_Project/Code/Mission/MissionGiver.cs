@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using MCGame.Core;
 
 // MissionGiver is an NPC in the world that can offer missions to the player.
 //
