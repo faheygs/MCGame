@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 using MCGame.Combat;
+using MCGame.Core;
 using MCGame.Gameplay.Player;
 
 namespace MCGame.Gameplay.AI
@@ -49,6 +50,8 @@ namespace MCGame.Gameplay.AI
         [Header("Animation")]
         [SerializeField] private Animator animator;
 
+        public event Action OnDefeated;
+
         private CharacterController _cc;
         private Health _health;
         private Transform _player;
@@ -56,16 +59,6 @@ namespace MCGame.Gameplay.AI
         private float _attackCooldownTimer;
         private float _verticalVelocity;
         private bool _isAttacking;
-
-        private static readonly int SpeedHash = Animator.StringToHash("Speed");
-        private static readonly int AttackHash = Animator.StringToHash("LightPunch");
-        private static readonly int HitHash = Animator.StringToHash("Hit");
-        private static readonly int KnockoutHash = Animator.StringToHash("Knockout");
-
-        public event Action OnDefeated;
-
-        public EnemyState CurrentState => _state;
-        public bool IsDead => _state == EnemyState.Dead;
 
         private void Awake()
         {
@@ -78,14 +71,20 @@ namespace MCGame.Gameplay.AI
 
         private void OnEnable()
         {
-            _health.OnDamaged += HandleDamaged;
-            _health.OnDied += HandleDied;
+            if (_health != null)
+            {
+                _health.OnDamaged += HandleDamaged;
+                _health.OnDied += HandleDied;
+            }
         }
 
         private void OnDisable()
         {
-            _health.OnDamaged -= HandleDamaged;
-            _health.OnDied -= HandleDied;
+            if (_health != null)
+            {
+                _health.OnDamaged -= HandleDamaged;
+                _health.OnDied -= HandleDied;
+            }
         }
 
         private void Start()
@@ -100,66 +99,51 @@ namespace MCGame.Gameplay.AI
 
         private void Update()
         {
-            if (_player == null) return;
             if (_state == EnemyState.Dead) return;
-            if (_state == EnemyState.Stagger) return;
+            if (_player == null) return;
+
+            _attackCooldownTimer -= Time.deltaTime;
+
+            ApplyGravity();
+            UpdateAnimator();
+
             if (_isAttacking) return;
 
-            if (_attackCooldownTimer > 0)
-                _attackCooldownTimer -= Time.deltaTime;
-
-            float distToPlayer = Vector3.Distance(transform.position, _player.position);
+            float distanceToPlayer = Vector3.Distance(transform.position, _player.position);
 
             switch (_state)
             {
                 case EnemyState.Idle:
-                    UpdateIdle(distToPlayer);
+                    if (distanceToPlayer <= detectionRange)
+                        _state = EnemyState.Chase;
                     break;
+
                 case EnemyState.Chase:
-                    UpdateChase(distToPlayer);
-                    break;
-                case EnemyState.Attack:
+                    if (distanceToPlayer > loseRange)
+                    {
+                        _state = EnemyState.Idle;
+                    }
+                    else if (distanceToPlayer <= attackRange && _attackCooldownTimer <= 0f)
+                    {
+                        StartCoroutine(AttackCoroutine());
+                    }
+                    else
+                    {
+                        ChasePlayer();
+                    }
                     break;
             }
-
-            ApplyGravity();
-
-            UpdateAnimator();
         }
 
-        private void UpdateIdle(float distToPlayer)
+        private void ChasePlayer()
         {
-            if (distToPlayer <= detectionRange)
-                _state = EnemyState.Chase;
-        }
+            Vector3 toPlayer = _player.position - transform.position;
+            toPlayer.y = 0;
 
-        private void UpdateChase(float distToPlayer)
-        {
-            if (distToPlayer > loseRange)
-            {
-                _state = EnemyState.Idle;
-                return;
-            }
-
-            if (distToPlayer <= attackRange && _attackCooldownTimer <= 0)
-            {
-                StartCoroutine(AttackCoroutine());
-                return;
-            }
+            Vector3 moveDir = toPlayer.normalized;
+            _cc.Move(moveDir * moveSpeed * Time.deltaTime);
 
             FaceTarget();
-            MoveTowardPlayer();
-        }
-
-        private void MoveTowardPlayer()
-        {
-            Vector3 direction = (_player.position - transform.position).normalized;
-            direction.y = 0;
-
-            Vector3 move = direction * moveSpeed;
-            move.y = _verticalVelocity;
-
-            _cc.Move(move * Time.deltaTime);
         }
 
         private void FaceTarget()
@@ -191,7 +175,7 @@ namespace MCGame.Gameplay.AI
             FaceTarget();
 
             if (animator != null)
-                animator.SetTrigger(AttackHash);
+                animator.SetTrigger(AnimatorParams.LightPunch);
 
             yield return new WaitForSeconds(attackWindup);
 
@@ -252,7 +236,7 @@ namespace MCGame.Gameplay.AI
             _state = EnemyState.Stagger;
 
             if (animator != null)
-                animator.SetTrigger(HitHash);
+                animator.SetTrigger(AnimatorParams.Hit);
 
             yield return new WaitForSeconds(staggerDuration);
 
@@ -268,7 +252,7 @@ namespace MCGame.Gameplay.AI
             _isAttacking = false;
 
             if (animator != null)
-                animator.SetTrigger(KnockoutHash);
+                animator.SetTrigger(AnimatorParams.Knockout);
 
             _cc.enabled = false;
 
@@ -285,7 +269,7 @@ namespace MCGame.Gameplay.AI
             if (_state == EnemyState.Chase && !_isAttacking)
                 speed = 0.5f;
 
-            animator.SetFloat(SpeedHash, speed, 0.1f, Time.deltaTime);
+            animator.SetFloat(AnimatorParams.Speed, speed, 0.1f, Time.deltaTime);
         }
 
         private void OnDrawGizmosSelected()

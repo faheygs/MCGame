@@ -1,5 +1,6 @@
 using UnityEngine;
 using MCGame.Combat;
+using MCGame.Core;
 using MCGame.World;
 
 namespace MCGame.Gameplay.Player
@@ -8,17 +9,6 @@ namespace MCGame.Gameplay.Player
     /// Static service that owns "how to respawn the player."
     /// Handles position reset, health reset, animator reset, controller re-enable,
     /// and broadcasts the respawn via PlayerService.NotifyRespawned().
-    ///
-    /// Called by:
-    ///   - PlayerHealth (on non-police-caused deaths)
-    ///   - PoliceManager (after a bust sequence completes — wired in A7.3)
-    ///   - Future: debug keys, fall-out-of-world detection, save-load, etc.
-    ///
-    /// Does NOT own:
-    ///   - Bust consequences (lay-low, money penalties) — those are police-specific, stay in PoliceManager
-    ///   - Mission state on death — MissionManager handles that via PlayerHealth
-    ///   - Game state transitions — GameManager owns those
-    ///   - UI fade/transition effects — future feature
     /// </summary>
     public static class RespawnService
     {
@@ -26,21 +16,11 @@ namespace MCGame.Gameplay.Player
         // Public API
         // -----------------------------------------------------------------
 
-        /// <summary>
-        /// Respawn the player at the default PlayerStart spawn point.
-        /// Returns true on success, false if the respawn couldn't be completed
-        /// (e.g., no PlayerStart in scene, no player registered).
-        /// </summary>
         public static bool RespawnPlayer()
         {
             return RespawnPlayer(spawnId: null);
         }
 
-        /// <summary>
-        /// Respawn the player at a specific named spawn point.
-        /// If spawnId is null or no matching spawn is found, falls back to the first
-        /// SpawnPoint of type PlayerStart.
-        /// </summary>
         public static bool RespawnPlayer(string spawnId)
         {
             if (!PlayerService.IsRegistered)
@@ -68,7 +48,6 @@ namespace MCGame.Gameplay.Player
         {
             SpawnPoint[] spawnPoints = Object.FindObjectsByType<SpawnPoint>(FindObjectsInactive.Exclude);
 
-            // First pass: look for a matching named spawn ID
             if (!string.IsNullOrEmpty(spawnId))
             {
                 foreach (SpawnPoint sp in spawnPoints)
@@ -79,7 +58,6 @@ namespace MCGame.Gameplay.Player
                 Debug.LogWarning($"[RespawnService] No spawn point with id '{spawnId}' found. Falling back to PlayerStart.");
             }
 
-            // Default: first PlayerStart-typed spawn
             foreach (SpawnPoint sp in spawnPoints)
             {
                 if (sp.Type == SpawnPoint.SpawnType.PlayerStart)
@@ -114,8 +92,6 @@ namespace MCGame.Gameplay.Player
 
         private static void ResetPosition(PlayerController player, Vector3 position)
         {
-            // CharacterController must be disabled before teleporting, then re-enabled.
-            // Otherwise the controller's internal state fights the position change.
             CharacterController cc = player.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = false;
 
@@ -126,47 +102,38 @@ namespace MCGame.Gameplay.Player
 
         private static void ResetHealth(PlayerController player)
         {
-            // Reset the Health component (combat damage routing layer)
             Health health = PlayerService.PlayerHealth;
             if (health != null) health.Reset();
 
-            // Reset PlayerData (HUD events layer)
             if (PlayerDataController.Instance != null)
                 PlayerDataController.Instance.HealToFull();
         }
 
         private static void ResetAnimator(PlayerController player)
         {
-            // Clean animator reset across all layers.
-            // For each layer, we attempt to play a default state if it exists.
-            // This avoids the "Animator.GotoState: State could not be found" warning that
-            // happened when the previous implementation tried to play "Empty" on layers
-            // that didn't have it.
             Animator playerAnimator = player.GetComponentInChildren<Animator>();
             if (playerAnimator == null) return;
 
             // Clear lingering attack/hit/knockout triggers so they don't immediately re-fire.
-            playerAnimator.ResetTrigger("Knockout");
-            playerAnimator.ResetTrigger("Hit");
-            playerAnimator.ResetTrigger("LightPunch");
-            playerAnimator.ResetTrigger("LightKick");
-            playerAnimator.ResetTrigger("HeavyPunch");
-            playerAnimator.ResetTrigger("HeavyKick");
+            playerAnimator.ResetTrigger(AnimatorParams.Knockout);
+            playerAnimator.ResetTrigger(AnimatorParams.Hit);
+            playerAnimator.ResetTrigger(AnimatorParams.LightPunch);
+            playerAnimator.ResetTrigger(AnimatorParams.LightKick);
+            playerAnimator.ResetTrigger(AnimatorParams.HeavyPunch);
+            playerAnimator.ResetTrigger(AnimatorParams.HeavyKick);
 
             // Reset every layer to a known-good state.
-            // Try common default state names in priority order. First match wins.
-            // If no match exists on a layer, the layer keeps its current state (no warning).
-            string[] candidateStates = { "Idle", "Empty" };
+            // Try Idle first, then Empty. First match wins per layer.
+            int[] candidateStates = { AnimatorParams.IdleState, AnimatorParams.EmptyState };
 
             for (int layer = 0; layer < playerAnimator.layerCount; layer++)
             {
-                foreach (string stateName in candidateStates)
+                foreach (int stateHash in candidateStates)
                 {
-                    int stateHash = Animator.StringToHash(stateName);
                     if (playerAnimator.HasState(layer, stateHash))
                     {
                         playerAnimator.Play(stateHash, layer, 0f);
-                        break; // Move to next layer
+                        break;
                     }
                 }
             }
@@ -174,8 +141,6 @@ namespace MCGame.Gameplay.Player
 
         private static void ResetCombat(PlayerController player)
         {
-            // PlayerCombat may be in the middle of an attack coroutine when respawn
-            // happens. Stop coroutines + cycle the component to ensure clean state.
             PlayerCombat combat = player.GetComponent<PlayerCombat>();
             if (combat == null) return;
 
@@ -186,7 +151,6 @@ namespace MCGame.Gameplay.Player
 
         private static void ResetController(PlayerController player)
         {
-            // Re-enable the player controller (PlayerHealth.HandleDied disables it on death).
             player.enabled = true;
         }
     }

@@ -1,11 +1,15 @@
 using UnityEngine;
 using MCGame.Combat;
+using MCGame.Core;
 using MCGame.Gameplay.Player;
 
 namespace MCGame.Gameplay.Police
 {
     /// <summary>
     /// AI state machine for police NPCs.
+    /// Damage subscription is owned by PoliceHealth (sibling component) — it intercepts
+    /// damage events to add police-specific behavior (crime reporting, hit-stun routing)
+    /// and calls back into this component via ApplyHitStun() and SetState().
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(Health))]
@@ -94,66 +98,71 @@ namespace MCGame.Gameplay.Police
             if (_isStunned)
             {
                 _stunTimer -= Time.deltaTime;
-                if (_stunTimer <= 0f)
-                {
-                    _isStunned = false;
-                }
+                if (_stunTimer <= 0f) _isStunned = false;
                 return;
             }
 
+            _attackTimer -= Time.deltaTime;
+
             switch (_currentState)
             {
-                case PoliceState.Pursue:
-                    UpdatePursue();
-                    break;
-                case PoliceState.Engage:
-                    UpdateEngage();
-                    break;
-                case PoliceState.Disengage:
-                    UpdateDisengage();
-                    break;
-            }
-
-            if (_attackTimer > 0f)
-            {
-                _attackTimer -= Time.deltaTime;
+                case PoliceState.Pursue: UpdatePursue(); break;
+                case PoliceState.Engage: UpdateEngage(); break;
+                case PoliceState.Disengage: UpdateDisengage(); break;
             }
         }
 
-        public void SetState(PoliceState newState)
+        /// <summary>
+        /// Called by PoliceHealth when this police NPC takes damage.
+        /// Triggers the Hit animation and starts the stun timer.
+        /// </summary>
+        public void ApplyHitStun()
         {
             if (_isKnockedOut) return;
 
+            _isStunned = true;
+            _stunTimer = hitStunDuration;
+
+            if (_animator != null)
+                _animator.SetTrigger(AnimatorParams.Hit);
+        }
+
+        /// <summary>
+        /// Public state setter — called by PoliceHealth on knockout, and by PoliceManager
+        /// when forcing a Disengage during heat-clear or bust resolution.
+        /// </summary>
+        public void SetState(PoliceState newState)
+        {
             _currentState = newState;
 
-            switch (newState)
+            if (newState == PoliceState.KnockedOut)
             {
-                case PoliceState.Pursue:
-                    Debug.Log($"[PoliceNPC] '{gameObject.name}' → PURSUE");
-                    break;
+                _isKnockedOut = true;
+                if (_animator != null)
+                    _animator.SetTrigger(AnimatorParams.Knockout);
+                if (_controller != null)
+                    _controller.enabled = false;
 
-                case PoliceState.Engage:
-                    Debug.Log($"[PoliceNPC] '{gameObject.name}' → ENGAGE");
-                    break;
+                if (PoliceManager.Instance != null)
+                    PoliceManager.Instance.UnregisterPolice(gameObject);
 
-                case PoliceState.Disengage:
-                    Debug.Log($"[PoliceNPC] '{gameObject.name}' → DISENGAGE");
-                    _disengageTimer = disengageTime;
-                    if (_player != null)
-                    {
-                        _disengageDirection = (transform.position - _player.position).normalized;
-                        _disengageDirection.y = 0;
-                    }
-                    else
-                    {
-                        _disengageDirection = -transform.forward;
-                    }
-                    break;
-
-                case PoliceState.KnockedOut:
-                    HandleKnockout();
-                    break;
+                Destroy(gameObject, knockoutDestroyDelay);
             }
+            else if (newState == PoliceState.Disengage)
+            {
+                _disengageTimer = disengageTime;
+                if (_player != null)
+                {
+                    _disengageDirection = (transform.position - _player.position).normalized;
+                    _disengageDirection.y = 0;
+                }
+            }
+        }
+
+        public void Disengage()
+        {
+            if (_currentState == PoliceState.KnockedOut) return;
+            SetState(PoliceState.Disengage);
         }
 
         private void UpdatePursue()
@@ -168,7 +177,7 @@ namespace MCGame.Gameplay.Police
                 return;
             }
 
-            float currentSpeed = distanceToPlayer > runDistance ? runSpeed : walkSpeed;
+            float currentSpeed = (distanceToPlayer > runDistance) ? runSpeed : walkSpeed;
 
             Vector3 direction = (_player.position - transform.position);
             direction.y = 0;
@@ -184,7 +193,7 @@ namespace MCGame.Gameplay.Police
 
             if (_animator != null)
             {
-                _animator.SetFloat("Speed", currentSpeed);
+                _animator.SetFloat(AnimatorParams.Speed, currentSpeed);
             }
         }
 
@@ -211,7 +220,7 @@ namespace MCGame.Gameplay.Police
 
             if (_animator != null)
             {
-                _animator.SetFloat("Speed", 0f);
+                _animator.SetFloat(AnimatorParams.Speed, 0f);
             }
 
             if (_attackTimer <= 0f)
@@ -226,7 +235,7 @@ namespace MCGame.Gameplay.Police
 
             if (_animator != null)
             {
-                _animator.SetTrigger("Attack");
+                _animator.SetTrigger(AnimatorParams.Attack);
             }
 
             StartCoroutine(DealDamageDelayed(0.4f));
@@ -265,9 +274,7 @@ namespace MCGame.Gameplay.Police
             if (_disengageTimer <= 0f)
             {
                 if (PoliceManager.Instance != null)
-                {
                     PoliceManager.Instance.UnregisterPolice(gameObject);
-                }
                 Destroy(gameObject);
                 return;
             }
@@ -276,52 +283,11 @@ namespace MCGame.Gameplay.Police
             _controller.Move(Vector3.down * 9.81f * Time.deltaTime);
 
             if (_disengageDirection.sqrMagnitude > 0.01f)
-            {
                 transform.rotation = Quaternion.LookRotation(_disengageDirection);
-            }
 
             if (_animator != null)
             {
-                _animator.SetFloat("Speed", walkSpeed);
-            }
-        }
-
-        private void HandleKnockout()
-        {
-            if (_isKnockedOut) return;
-            _isKnockedOut = true;
-
-            Debug.Log($"[PoliceNPC] '{gameObject.name}' knocked out.");
-
-            if (_animator != null)
-            {
-                _animator.SetFloat("Speed", 0f);
-                _animator.SetTrigger("Knockout");
-            }
-
-            enabled = false;
-
-            Destroy(gameObject, knockoutDestroyDelay);
-        }
-
-        public void Disengage()
-        {
-            if (_isKnockedOut) return;
-            SetState(PoliceState.Disengage);
-        }
-
-        public void ApplyHitStun()
-        {
-            if (_isKnockedOut) return;
-
-            _isStunned = true;
-            _stunTimer = hitStunDuration;
-
-            _attackTimer = attackCooldown * 0.5f;
-
-            if (_animator != null)
-            {
-                _animator.SetFloat("Speed", 0f);
+                _animator.SetFloat(AnimatorParams.Speed, walkSpeed);
             }
         }
     }
