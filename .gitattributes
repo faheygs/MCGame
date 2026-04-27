@@ -9,3 +9,123 @@
 *.dll filter=lfs diff=lfs merge=lfs -text
 *.so filter=lfs diff=lfs merge=lfs -text
 *.dylib filter=lfs diff=lfs merge=lfs -text
+
+# .gitattributes - MCGame project
+# Tells git how to handle text vs binary files, line endings, and merge strategies.
+
+# ============================================================
+# Auto-detect text files; normalize line endings to LF in repo
+# ============================================================
+* text=auto eol=lf
+
+# ============================================================
+# C# / .NET source
+# ============================================================
+*.cs           text diff=csharp
+*.csproj       text merge=union
+*.sln          text eol=crlf merge=union
+
+# ============================================================
+# Unity text assets - YAML, force LF, mark for SmartMerge
+# ============================================================
+# These are YAML files. Forcing LF + Unity SmartMerge prevents merge corruption.
+*.unity         text eol=lf merge=unityyamlmerge
+*.prefab        text eol=lf merge=unityyamlmerge
+*.asset         text eol=lf merge=unityyamlmerge
+*.mat           text eol=lf merge=unityyamlmerge
+*.controller    text eol=lf merge=unityyamlmerge
+*.anim          text eol=lf merge=unityyamlmerge
+*.meta          text eol=lf merge=unityyamlmerge
+*.physicMaterial      text eol=lf merge=unityyamlmerge
+*.physicsMaterial2D   text eol=lf merge=unityyamlmerge
+*.playable      text eol=lf merge=unityyamlmerge
+*.mask          text eol=lf merge=unityyamlmerge
+*.brush         text eol=lf merge=unityyamlmerge
+*.flare         text eol=lf merge=unityyamlmerge
+*.fontsettings  text eol=lf merge=unityyamlmerge
+*.guiskin       text eol=lf merge=unityyamlmerge
+*.giparams      text eol=lf merge=unityyamlmerge
+*.lighting      text eol=lf merge=unityyamlmerge
+*.mixer         text eol=lf merge=unityyamlmerge
+*.overrideController  text eol=lf merge=unityyamlmerge
+*.preset        text eol=lf merge=unityyamlmerge
+*.renderTexture text eol=lf merge=unityyamlmerge
+*.shadergraph   text eol=lf merge=unityyamlmerge
+*.shadersubgraph text eol=lf merge=unityyamlmerge
+*.signal        text eol=lf merge=unityyamlmerge
+*.spriteatlas   text eol=lf merge=unityyamlmerge
+*.terrainlayer  text eol=lf merge=unityyamlmerge
+
+# ============================================================
+# Shader / config text
+# ============================================================
+*.shader       text eol=lf
+*.cginc        text eol=lf
+*.hlsl         text eol=lf
+*.compute      text eol=lf
+
+*.json         text eol=lf
+*.yml          text eol=lf
+*.yaml         text eol=lf
+*.xml          text eol=lf
+*.md           text eol=lf
+*.txt          text eol=lf
+
+.editorconfig  text eol=lf
+.gitignore     text eol=lf
+.gitattributes text eol=lf
+
+# ============================================================
+# Binary files - Unity / 3D / images
+# ============================================================
+# Tell git these are binary so it doesn't try to do diffs/merges
+# and Git LFS users would track these for storage.
+*.png          binary
+*.jpg          binary
+*.jpeg         binary
+*.gif          binary
+*.bmp          binary
+*.tga          binary
+*.tif          binary
+*.tiff         binary
+*.iff          binary
+*.psd          binary
+*.exr          binary
+*.hdr          binary
+*.pict         binary
+
+*.fbx          binary
+*.obj          binary
+*.blend        binary
+*.dae          binary
+*.3ds          binary
+*.dxf          binary
+*.skp          binary
+*.stl          binary
+*.ply          binary
+*.max          binary
+*.mb           binary
+*.ma           binary
+
+*.wav          binary
+*.mp3          binary
+*.ogg          binary
+*.aif          binary
+*.aiff         binary
+*.flac         binary
+
+*.mp4          binary
+*.mov          binary
+*.avi          binary
+*.webm         binary
+
+*.unitypackage binary
+*.dll          binary
+*.so           binary
+*.dylib        binary
+*.exe          binary
+*.pdb          binary
+*.zip          binary
+*.7z           binary
+*.gz           binary
+*.rar          binary

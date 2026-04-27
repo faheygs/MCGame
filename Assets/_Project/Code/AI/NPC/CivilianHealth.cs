@@ -1,12 +1,14 @@
 using UnityEngine;
 using System.Collections;
 using MCGame.Combat;
+using MCGame.Core;
 using MCGame.Gameplay.Crime;
 
 namespace MCGame.Gameplay.AI
 {
     /// <summary>
     /// Bridges Health component on civilians to the crime reporting system.
+    /// Handles knockout/recovery cycle and animation routing.
     /// </summary>
     [RequireComponent(typeof(Health))]
     public class CivilianHealth : MonoBehaviour
@@ -55,7 +57,7 @@ namespace MCGame.Gameplay.AI
 
             if (animator != null && !_health.IsDead)
             {
-                animator.SetTrigger("Hit");
+                animator.SetTrigger(AnimatorParams.Hit);
             }
         }
 
@@ -72,7 +74,7 @@ namespace MCGame.Gameplay.AI
 
             if (animator != null)
             {
-                animator.SetFloat("Speed", 0f);
+                animator.SetFloat(AnimatorParams.Speed, 0f);
                 StartCoroutine(TriggerKnockoutNextFrame());
             }
 
@@ -97,7 +99,7 @@ namespace MCGame.Gameplay.AI
             yield return null;
             if (animator != null)
             {
-                animator.SetTrigger("Knockout");
+                animator.SetTrigger(AnimatorParams.Knockout);
             }
         }
 
@@ -122,7 +124,7 @@ namespace MCGame.Gameplay.AI
 
             if (animator != null)
             {
-                animator.SetTrigger("Getup");
+                animator.SetTrigger(AnimatorParams.Getup);
                 StartCoroutine(WaitForGetupToComplete());
             }
             else
@@ -137,6 +139,8 @@ namespace MCGame.Gameplay.AI
 
             yield return null;
 
+            // Note: IsName checks against state names (different namespace from parameter names).
+            // Leaving as string for clarity — these aren't AnimatorParams' concern.
             while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Getup"))
             {
                 yield return null;

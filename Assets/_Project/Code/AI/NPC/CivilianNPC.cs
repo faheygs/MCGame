@@ -1,4 +1,5 @@
 using UnityEngine;
+using MCGame.Core;
 
 namespace MCGame.Gameplay.AI
 {
@@ -118,7 +119,7 @@ namespace MCGame.Gameplay.AI
         {
             if (_animator == null) return;
 
-            _animator.SetFloat("Speed", _currentMovementSpeed);
+            _animator.SetFloat(AnimatorParams.Speed, _currentMovementSpeed);
         }
 
         private void OnDrawGizmosSelected()
