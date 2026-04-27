@@ -5,17 +5,13 @@ namespace MCGame.Gameplay.Crime
 {
     /// <summary>
     /// Passively reduces heat over time when the player is not triggering heat events.
-    /// Timer resets if heat increases while cooling down.
+    /// Timer resets if heat changes (up or down).
     ///
-    /// Lives in Gameplay.Crime because heat is a crime-system concept.
-    /// (Was previously in Core; moved during A5.3 since it depends on PlayerDataController.)
+    /// Cooldown duration comes from PlayerConfig.heatCooldownTime — single source of truth.
+    /// Place a single instance under SYSTEMS group in the scene. Not player-specific.
     /// </summary>
     public class HeatCooldown : MonoBehaviour
     {
-        [Header("Settings")]
-        [Tooltip("Seconds of clean play before heat decays by 1 level. Resets on any heat change.")]
-        [SerializeField] private float cooldownTime = 15f;
-
         private float _timer;
         private bool _subscribed;
 
@@ -55,6 +51,9 @@ namespace MCGame.Gameplay.Crime
                 return;
             }
 
+            float cooldownTime = GetCooldownTime();
+            if (cooldownTime <= 0f) return;
+
             _timer += Time.deltaTime;
 
             if (_timer >= cooldownTime)
@@ -62,6 +61,14 @@ namespace MCGame.Gameplay.Crime
                 _timer = 0f;
                 PlayerDataController.Instance.RemoveHeat(1);
             }
+        }
+
+        private float GetCooldownTime()
+        {
+            PlayerConfig config = PlayerDataController.Instance != null
+                ? PlayerDataController.Instance.Config
+                : null;
+            return config != null ? config.heatCooldownTime : 0f;
         }
 
         private void HandleHeatChanged(int newLevel)
