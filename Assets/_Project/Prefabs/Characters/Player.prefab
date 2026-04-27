@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 2444980374173395037}
   - component: {fileID: 3213586560487136509}
   - component: {fileID: 6647361169229501505}
-  - component: {fileID: 3837118876896647975}
   - component: {fileID: 4417739939279003638}
   - component: {fileID: 2114991045831667543}
   - component: {fileID: 6385678262324097372}
@@ -82,20 +81,6 @@ MonoBehaviour:
   rotationSpeed: 10
   gravity: -20
   inputReader: {fileID: 11400000, guid: 893ce312c7f9979449c76bffff519bf3, type: 2}
---- !u!114 &3837118876896647975
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6770006369972330859}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 619a016fed4e83f428cf9f1a51f80c8d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HeatCooldown
-  cooldownTime: 30
-  playerStats: {fileID: 11400000, guid: 6c9949683bd333b4f8570a1d74e662f9, type: 2}
 --- !u!114 &4417739939279003638
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138,7 +123,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c714d14a8c2b11944b18c98517268189, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
-  playerStats: {fileID: 11400000, guid: 6c9949683bd333b4f8570a1d74e662f9, type: 2}
 --- !u!114 &988057745574182021
 MonoBehaviour:
   m_ObjectHideFlags: 0
