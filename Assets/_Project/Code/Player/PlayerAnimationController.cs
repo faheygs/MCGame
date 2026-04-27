@@ -1,14 +1,19 @@
 using UnityEngine;
+using MCGame.Core;
 
 namespace MCGame.Gameplay.Player
 {
+    /// <summary>
+    /// Drives the Animator's Speed parameter from CharacterController velocity.
+    /// Normalizes to runSpeed from PlayerConfig — single source of truth shared
+    /// with PlayerController.
+    /// </summary>
     [RequireComponent(typeof(Animator))]
     public class PlayerAnimationController : MonoBehaviour
     {
         [SerializeField] private CharacterController characterController;
 
         private Animator _animator;
-        private static readonly int SpeedHash = Animator.StringToHash("Speed");
 
         private void Awake()
         {
@@ -23,9 +28,12 @@ namespace MCGame.Gameplay.Player
                 characterController.velocity.z
             );
 
-            // Walk is ~3 units/s, Run is ~6 units/s
-            float speed = horizontalVelocity.magnitude / 6f;
-            _animator.SetFloat(SpeedHash, speed, 0.15f, Time.deltaTime);
+            // Normalize by runSpeed from config — same source PlayerController uses.
+            // Fallback to 6 if config not yet available (very early Awake).
+            float runSpeed = PlayerDataController.Instance?.Config?.runSpeed ?? 6f;
+            float speed = horizontalVelocity.magnitude / runSpeed;
+
+            _animator.SetFloat(AnimatorParams.Speed, speed, 0.15f, Time.deltaTime);
         }
     }
 }

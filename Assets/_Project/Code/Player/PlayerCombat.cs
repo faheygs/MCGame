@@ -1,13 +1,15 @@
-using UnityEngine;
 using System.Collections;
-using MCGame.Input;
+using UnityEngine;
+using MCGame.Core;
 using MCGame.Combat;
+using MCGame.Input;
 
 namespace MCGame.Gameplay.Player
 {
     /// <summary>
-    /// Handles all player combat — attacking AND taking hits.
+    /// Handles player melee combat: light/heavy attacks, hit reactions, knockout.
     /// </summary>
+    [RequireComponent(typeof(Health))]
     public class PlayerCombat : MonoBehaviour
     {
         [Header("References")]
@@ -39,14 +41,6 @@ namespace MCGame.Gameplay.Player
         private bool _isStunned;
         private Health _ownHealth;
         private PlayerController _playerController;
-
-        // Animator trigger hashes
-        private static readonly int LightPunchHash = Animator.StringToHash("LightPunch");
-        private static readonly int LightKickHash = Animator.StringToHash("LightKick");
-        private static readonly int HeavyPunchHash = Animator.StringToHash("HeavyPunch");
-        private static readonly int HeavyKickHash = Animator.StringToHash("HeavyKick");
-        private static readonly int HitHash = Animator.StringToHash("Hit");
-        private static readonly int KnockoutHash = Animator.StringToHash("Knockout");
 
         public bool IsAttacking => _isAttacking;
 
@@ -97,7 +91,7 @@ namespace MCGame.Gameplay.Player
         {
             if (!CanAttack()) return;
 
-            int triggerHash = Random.value > 0.5f ? LightPunchHash : LightKickHash;
+            int triggerHash = Random.value > 0.5f ? AnimatorParams.LightPunch : AnimatorParams.LightKick;
             StartCoroutine(AttackCoroutine(triggerHash, lightDamage, lightHitDelay, lightTotalDuration, false));
         }
 
@@ -105,7 +99,7 @@ namespace MCGame.Gameplay.Player
         {
             if (!CanAttack()) return;
 
-            int triggerHash = Random.value > 0.5f ? HeavyPunchHash : HeavyKickHash;
+            int triggerHash = Random.value > 0.5f ? AnimatorParams.HeavyPunch : AnimatorParams.HeavyKick;
             StartCoroutine(AttackCoroutine(triggerHash, heavyDamage, heavyHitDelay, heavyTotalDuration, true));
         }
 
@@ -120,10 +114,10 @@ namespace MCGame.Gameplay.Player
 
         private void ClearCombatTriggers()
         {
-            animator.ResetTrigger(LightPunchHash);
-            animator.ResetTrigger(LightKickHash);
-            animator.ResetTrigger(HeavyPunchHash);
-            animator.ResetTrigger(HeavyKickHash);
+            animator.ResetTrigger(AnimatorParams.LightPunch);
+            animator.ResetTrigger(AnimatorParams.LightKick);
+            animator.ResetTrigger(AnimatorParams.HeavyPunch);
+            animator.ResetTrigger(AnimatorParams.HeavyKick);
         }
 
         private IEnumerator AttackCoroutine(int animTrigger, int damage, float hitDelay, float totalDuration, bool isHeavy)
@@ -182,9 +176,8 @@ namespace MCGame.Gameplay.Player
             {
                 StopAllCoroutines();
                 _isAttacking = false;
+                if (_playerController != null) _playerController.enabled = true;
             }
-
-            animator.SetTrigger(HitHash);
 
             StartCoroutine(HitStunCoroutine());
         }
@@ -193,14 +186,16 @@ namespace MCGame.Gameplay.Player
         {
             _isStunned = true;
 
+            ClearCombatTriggers();
+            animator.SetTrigger(AnimatorParams.Hit);
+
             if (_playerController != null) _playerController.enabled = false;
 
             yield return new WaitForSeconds(hitStunDuration);
 
-            if (_ownHealth != null && !_ownHealth.IsDead)
-            {
-                if (_playerController != null) _playerController.enabled = true;
-            }
+            if (_ownHealth.IsDead) yield break;
+
+            if (_playerController != null) _playerController.enabled = true;
 
             _isStunned = false;
         }
@@ -211,20 +206,10 @@ namespace MCGame.Gameplay.Player
             _isAttacking = false;
             _isStunned = true;
 
-            animator.SetTrigger(KnockoutHash);
+            ClearCombatTriggers();
+            animator.SetTrigger(AnimatorParams.Knockout);
 
             if (_playerController != null) _playerController.enabled = false;
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            Vector3 origin = transform.position + Vector3.up * attackHeightOffset;
-            Vector3 end = origin + transform.forward * attackRange;
-
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(origin, attackRadius);
-            Gizmos.DrawLine(origin, end);
-            Gizmos.DrawWireSphere(end, attackRadius);
         }
     }
 }

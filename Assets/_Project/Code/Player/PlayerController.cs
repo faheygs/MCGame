@@ -4,21 +4,26 @@ using MCGame.Gameplay.Camera;
 
 namespace MCGame.Gameplay.Player
 {
+    /// <summary>
+    /// Player movement controller. Reads movement tuning from PlayerConfig (via
+    /// PlayerDataController) — single source of truth shared with PlayerAnimationController.
+    /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour
     {
-        [Header("Movement Settings")]
-        [SerializeField] private float walkSpeed = 3f;
-        [SerializeField] private float runSpeed = 6f;
-        [SerializeField] private float rotationSpeed = 10f;
-        [SerializeField] private float gravity = -20f;
-
         [Header("References")]
         [SerializeField] private InputReader inputReader;
 
         private CharacterController _characterController;
         private ThirdPersonCamera _thirdPersonCamera;
         private Vector3 _verticalVelocity;
+
+        // Movement values come from PlayerConfig (set in PlayerDataController).
+        // Fallback defaults used only if config is unavailable (e.g., very early Awake).
+        private float WalkSpeed => PlayerDataController.Instance?.Config?.walkSpeed ?? 3f;
+        private float RunSpeed => PlayerDataController.Instance?.Config?.runSpeed ?? 6f;
+        private float RotationSpeed => PlayerDataController.Instance?.Config?.rotationSpeed ?? 10f;
+        private float Gravity => PlayerDataController.Instance?.Config?.gravity ?? -20f;
 
         private void Awake()
         {
@@ -44,13 +49,13 @@ namespace MCGame.Gameplay.Player
                 Quaternion cameraRotation = _thirdPersonCamera.GetCameraRotation();
                 moveDirection = cameraRotation * moveDirection;
 
-                float speed = inputReader.SprintInput ? runSpeed : walkSpeed;
+                float speed = inputReader.SprintInput ? RunSpeed : WalkSpeed;
 
                 Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
                     targetRotation,
-                    rotationSpeed * Time.deltaTime
+                    RotationSpeed * Time.deltaTime
                 );
 
                 _characterController.Move(moveDirection * speed * Time.deltaTime);
@@ -65,7 +70,7 @@ namespace MCGame.Gameplay.Player
             }
             else
             {
-                _verticalVelocity.y += gravity * Time.deltaTime;
+                _verticalVelocity.y += Gravity * Time.deltaTime;
             }
 
             _characterController.Move(_verticalVelocity * Time.deltaTime);
