@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace MCGame.Gameplay.Mission
 {
-    [CreateAssetMenu(fileName = "MissionData", menuName = "MCGame/Mission Data")]
+    [CreateAssetMenu(fileName = "MissionData", menuName = "MCGame/Missions/Mission Data")]
     public class MissionData : ScriptableObject
     {
         [Header("Mission Info")]

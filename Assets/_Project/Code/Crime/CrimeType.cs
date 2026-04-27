@@ -5,7 +5,7 @@ namespace MCGame.Gameplay.Crime
     /// <summary>
     /// Defines a criminal action in the game world.
     /// </summary>
-    [CreateAssetMenu(fileName = "CrimeType_", menuName = "MCGame/Crime Type")]
+    [CreateAssetMenu(fileName = "CrimeType_", menuName = "MCGame/Crime/Crime Type")]
     public class CrimeType : ScriptableObject
     {
         [Header("Crime Identity")]

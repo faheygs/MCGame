@@ -9,7 +9,7 @@ namespace MCGame.Gameplay.Player
     ///
     /// Single source of truth for everything tunable about the player.
     /// </summary>
-    [CreateAssetMenu(fileName = "PlayerConfig", menuName = "MCGame/Player Config")]
+    [CreateAssetMenu(fileName = "PlayerConfig", menuName = "MCGame/Player/Player Config")]
     public class PlayerConfig : ScriptableObject
     {
         [Header("Stats")]

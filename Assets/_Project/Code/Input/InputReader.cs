@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 namespace MCGame.Input
 {
-    [CreateAssetMenu(fileName = "InputReader", menuName = "MCGame/Input Reader")]
+    [CreateAssetMenu(fileName = "InputReader", menuName = "MCGame/Input/Input Reader")]
     public class InputReader : ScriptableObject, PlayerInputActions.IPlayerActions
     {
         public Vector2 MoveInput { get; private set; }
