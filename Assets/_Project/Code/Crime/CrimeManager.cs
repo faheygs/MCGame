@@ -15,18 +15,12 @@ namespace MCGame.Gameplay.Crime
         [Range(5f, 50f)]
         [SerializeField] private float witnessDetectionRadius = 20f;
 
-        [Tooltip("Which layers count as potential witnesses")]
-        [SerializeField] private LayerMask witnessLayerMask = 1 << 13;
-
-        [Tooltip("Which layers block line of sight")]
-        [SerializeField] private LayerMask obstructionLayerMask = 1 << 0;
-
         public event Action<CrimeType, Vector3> OnCrimeReported;
         public event Action<CrimeType> OnCrimeUnwitnessed;
 
         public float WitnessDetectionRadius => witnessDetectionRadius;
-        public LayerMask WitnessLayerMask => witnessLayerMask;
-        public LayerMask ObstructionLayerMask => obstructionLayerMask;
+        public LayerMask WitnessLayerMask => Layers.NPCMask;
+        public LayerMask ObstructionLayerMask => Layers.LineOfSightObstructionMask;
 
         private void Start()
         {

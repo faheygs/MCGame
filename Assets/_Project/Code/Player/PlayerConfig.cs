@@ -4,15 +4,10 @@ namespace MCGame.Gameplay.Player
 {
     /// <summary>
     /// Designer-tunable static configuration for the player.
-    /// NEVER mutated at runtime. Read-only data referenced by PlayerDataController.
+    /// NEVER mutated at runtime. Read-only data referenced by PlayerDataController
+    /// and other player systems (PlayerController, PlayerAnimationController, HeatCooldown).
     ///
-    /// Contains:
-    ///   - Stat maximums (health, heat)
-    ///   - Rank progression chain
-    ///   - Bust system tunables (lay-low durations, money/rep penalties)
-    ///   - Heat decay tunables
-    ///
-    /// Save data lives in PlayerData (plain C# class), NOT here.
+    /// Single source of truth for everything tunable about the player.
     /// </summary>
     [CreateAssetMenu(fileName = "PlayerConfig", menuName = "MCGame/Player Config")]
     public class PlayerConfig : ScriptableObject
@@ -20,6 +15,19 @@ namespace MCGame.Gameplay.Player
         [Header("Stats")]
         [Tooltip("Maximum player health. Used as full-heal target.")]
         public float maxHealth = 100f;
+
+        [Header("Movement")]
+        [Tooltip("Walk speed in meters per second.")]
+        public float walkSpeed = 3f;
+
+        [Tooltip("Run speed in meters per second. Used by PlayerAnimationController to normalize the Speed parameter.")]
+        public float runSpeed = 6f;
+
+        [Tooltip("How fast the player rotates to face movement direction. Higher = snappier turns.")]
+        public float rotationSpeed = 10f;
+
+        [Tooltip("Gravity acceleration applied to the player when not grounded. Negative.")]
+        public float gravity = -20f;
 
         [Header("Heat")]
         [Tooltip("Maximum heat level. Heat caps here regardless of crime accumulation.")]
@@ -52,9 +60,6 @@ namespace MCGame.Gameplay.Player
         // Lookup helpers — read-only utilities for code that needs the chain
         // -----------------------------------------------------------------
 
-        /// <summary>
-        /// Returns the RankDefinition for the given rank, or a default if not found.
-        /// </summary>
         public RankDefinition GetRankDefinition(ClubRank rank)
         {
             if (rankChain == null) return default;
@@ -67,19 +72,12 @@ namespace MCGame.Gameplay.Player
             return default;
         }
 
-        /// <summary>
-        /// Returns the next rank in the progression chain, or the same rank if at top.
-        /// </summary>
         public ClubRank GetNextRank(ClubRank current)
         {
             if (current >= ClubRank.President) return ClubRank.President;
             return (ClubRank)((int)current + 1);
         }
 
-        /// <summary>
-        /// Returns the bust consequence index for a given streak.
-        /// Streak 1 → index 0, streak 2 → index 1, streak 3+ → cap at last entry.
-        /// </summary>
         public int GetBustConsequenceIndex(int streak)
         {
             if (streak < 1) return 0;
